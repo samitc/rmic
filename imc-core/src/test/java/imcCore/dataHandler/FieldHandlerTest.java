@@ -26,7 +26,8 @@ public class FieldHandlerTest {
                 short.class,
                 long.class,
                 float.class,
-                double.class);
+                double.class,
+                void.class);
         allHandlers.forEach(iTypeContract -> Assert.assertTrue(allId.add(iTypeContract.getType())));
         Assert.assertEquals(allHandlers.size(), allId.size());
     }

@@ -1,22 +1,45 @@
 package imcCore.dataHandler;
 
 import imcCore.contract.ImcClass;
+import imcCore.contract.ImcMethod;
 import lombok.Data;
 import lombok.val;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 
 @Data
-class ImcMethodDesc implements ImcData {
+class ImcMethodDesc {
     private final int methodCode;
     private final ImcClassDesc[] params;
     private final ImcClassDesc retData;
 
+    private ImcMethodDesc(ImcMethod imcMethod, int methodCode, Method method) {
+        this.methodCode = methodCode;
+        retData = imcMethod.isSendResult() ? new ImcClassDesc(method.getReturnType()) : null;
+        Class<?>[] parameters = method.getParameterTypes();
+        params = parameters.length == 0 ? null : Arrays.stream(parameters).map(ImcClassDesc::new).toArray(ImcClassDesc[]::new);
+    }
+
+    private ImcMethodDesc(ImcClass imcClass, int methodCode, Method method) {
+        this(imcClass.getImcMethod(methodCode), methodCode, method);
+    }
+
+    private ImcMethodDesc(ImcMethod imcMethod, int methodCode) {
+        this(imcMethod, methodCode, imcMethod.getMethod());
+    }
+
+    ImcMethodDesc(ImcClass imcClass, int methodIndex) {
+        this(imcClass.getImcMethod(methodIndex), methodIndex);
+    }
+
     ImcMethodDesc(Method method, ImcClass imcClass) {
+
+        this(imcClass, getMethodPos(method, imcClass), method);
+    }
+
+    private static int getMethodPos(Method method, ImcClass imcClass) {
         Method[] methods = imcClass.getContractMethods().toArray(Method[]::new);
         int metPos = -1;
         for (int i = 0; metPos == -1 && i < methods.length; i++) {
@@ -24,28 +47,55 @@ class ImcMethodDesc implements ImcData {
                 metPos = i;
             }
         }
-        methodCode = metPos;
-        retData = imcClass.getImcMethod(metPos).isSendResult() ? new ImcClassDesc(method.getReturnType()) : null;
-        Class<?>[] parameters = method.getParameterTypes();
-        params = parameters.length == 0 ? null : Arrays.stream(parameters).map(ImcClassDesc::new).toArray(ImcClassDesc[]::new);
+        return metPos;
     }
-    public byte[] toBytes(Object retObj,Object ...paramsObj) throws IOException {
-        val buf=new ByteArrayOutputStream(){
-            @Override
-            public synchronized byte[] toByteArray() {
-                return buf;
-            }
-        };
-        val dataOutput=new DataOutputStream(buf);
-        dataOutput.writeInt(methodCode);
-        if (retData!=null){
-            retData.writeBytes(retObj,dataOutput);
+
+    private static void writeObject(DataOutput output, ImcClassDesc classDesc, Object obj) throws IOException {
+        if (classDesc.getClassData().isPrimitive()) {
+            FieldHandler.getTypeContract(classDesc.getClassData()).writeO(output, obj);
+        } else {
+            classDesc.writeBytes(obj, output);
         }
-        if (params!=null){
+    }
+
+    private Object readObject(DataInput input, ImcClassDesc classDesc) throws IOException, InstantiationException, IllegalAccessException {
+        if (classDesc.getClassData().isPrimitive()) {
+            return FieldHandler.getTypeContract(classDesc.getClassData()).read(input);
+        } else {
+            return classDesc.readBytes(input);
+        }
+    }
+
+    public byte[] toBytes(MethodPocket methodPocket) throws IOException {
+        val buf = new ByteArrayOutputStream();
+        val dataOutput = new DataOutputStream(buf);
+        dataOutput.writeInt(methodCode);
+        if (retData != null) {
+            writeObject(dataOutput, retData, methodPocket.getRetObj());
+        }
+        if (params != null) {
             for (int i = 0; i < params.length; i++) {
-                params[i].writeBytes(paramsObj[i],dataOutput);
+                writeObject(dataOutput, params[i], methodPocket.getParamsObject().get(i));
             }
         }
         return buf.toByteArray();
+    }
+
+    public MethodPocket fromBytes(byte[] bytes) throws IOException, IllegalAccessException, InstantiationException {
+        val dataInput = new DataInputStream(new ByteArrayInputStream(bytes));
+        val methodPocket = MethodPocket.builder();
+        int methodCode = dataInput.readInt();
+        if (this.methodCode != methodCode) {
+            return null;
+        }
+        if (retData != null) {
+            methodPocket.retObj(readObject(dataInput, retData));
+        }
+        if (params != null) {
+            for (ImcClassDesc param : params) {
+                methodPocket.addParam(readObject(dataInput, param));
+            }
+        }
+        return methodPocket.build();
     }
 }

@@ -45,14 +45,15 @@ class FieldHandler {
         }
         unsafe = newUnsafe;
         handlers = new HashMap<>();
-        handlers.put(int.class, new intClassHandler());
-        handlers.put(boolean.class, new booleanClassHandler());
-        handlers.put(byte.class, new byteClassHandler());
-        handlers.put(char.class, new charClassHandler());
-        handlers.put(short.class, new shortClassHandler());
-        handlers.put(long.class, new longClassHandler());
-        handlers.put(float.class, new floatClassHandler());
-        handlers.put(double.class, new doubleClassHandler());
+        handlers.put(int.class, new IntClassHandler());
+        handlers.put(boolean.class, new BooleanClassHandler());
+        handlers.put(byte.class, new ByteClassHandler());
+        handlers.put(char.class, new CharClassHandler());
+        handlers.put(short.class, new ShortClassHandler());
+        handlers.put(long.class, new LongClassHandler());
+        handlers.put(float.class, new FloatClassHandler());
+        handlers.put(double.class, new DoubleClassHandler());
+        handlers.put(void.class, new VoidClassHandler());
     }
 
     public static double getDouble(Object var1, long var2) {
@@ -89,6 +90,42 @@ class FieldHandler {
 
     public static Object getObject(Object var1, long var2) {
         return unsafe.getObject(var1, var2);
+    }
+
+    public static void putDouble(Object var1, long var2, double d) {
+        unsafe.putDouble(var1, var2, d);
+    }
+
+    public static void putFloat(Object var1, long var2, float f) {
+        unsafe.putFloat(var1, var2, f);
+    }
+
+    public static void putLong(Object var1, long var2, long l) {
+        unsafe.putLong(var1, var2, l);
+    }
+
+    public static void putShort(Object var1, long var2, short s) {
+        unsafe.putShort(var1, var2, s);
+    }
+
+    public static void putChar(Object var1, long var2, char c) {
+        unsafe.putChar(var1, var2, c);
+    }
+
+    public static void putByte(Object var1, long var2, byte b) {
+        unsafe.putByte(var1, var2, b);
+    }
+
+    public static void putBoolean(Object var1, long var2, boolean b) {
+        unsafe.putBoolean(var1, var2, b);
+    }
+
+    public static void putInt(Object var1, long var2, int i) {
+        unsafe.putInt(var1, var2, i);
+    }
+
+    public static void putObject(Object var1, long var2, Object o) {
+        unsafe.putObject(var1, var2, o);
     }
 
     public static int getType(Class<?> type) {
