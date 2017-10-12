@@ -48,9 +48,17 @@ public class ImcMethodDescTest {
         ByteArrayOutputStream buf = new ByteArrayOutputStream();
         DataOutputStream outputStream = new DataOutputStream(buf);
         outputStream.writeInt(mIndex);
+        byte flag = 0;
         if (!imcMethod.isSendResult()) {
             retObj = null;
         }
+        if (retObj != null) {
+            flag |= 1;
+        }
+        if (args != null) {
+            flag |= 1 << 1;
+        }
+        outputStream.writeByte(flag);
         if (retObj != null) {
             writeObject(outputStream, retObj);
         }
@@ -127,4 +135,15 @@ public class ImcMethodDescTest {
     public void testWriteByteParamAndReturnInt() throws NotContractInterfaceType, IOException, NotInterfaceType, IllegalAccessException, InstantiationException {
         testImcMethod(IContractOverloading.class, 4, 3, 7);
     }
+
+    @Test
+    public void testWriteByteParamAndReturnIntNoRet() throws NotContractInterfaceType, IOException, NotInterfaceType, IllegalAccessException, InstantiationException {
+        testImcMethod(IContractOverloading.class, 4, null, 7);
+    }
+
+    @Test
+    public void testWriteByteParamAndReturnIntNoParams() throws NotContractInterfaceType, IOException, NotInterfaceType, IllegalAccessException, InstantiationException {
+        testImcMethod(IContractOverloading.class, 4, 3, (Object[]) null);
+    }
+
 }

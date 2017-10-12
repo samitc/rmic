@@ -10,7 +10,7 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 
 @Data
-class ImcMethodDesc {
+public class ImcMethodDesc {
     private final int methodCode;
     private final ImcClassDesc[] params;
     private final ImcClassDesc retData;
@@ -26,7 +26,7 @@ class ImcMethodDesc {
         this(imcClass.getImcMethod(methodCode), methodCode, method);
     }
 
-    private ImcMethodDesc(ImcMethod imcMethod, int methodCode) {
+    public ImcMethodDesc(ImcMethod imcMethod, int methodCode) {
         this(imcMethod, methodCode, imcMethod.getMethod());
     }
 
@@ -70,10 +70,11 @@ class ImcMethodDesc {
         val buf = new ByteArrayOutputStream();
         val dataOutput = new DataOutputStream(buf);
         dataOutput.writeInt(methodCode);
-        if (retData != null) {
+        dataOutput.writeByte(ImcMethodDescFlags.readFlags(methodPocket));
+        if (retData != null && methodPocket.hasRetObj()) {
             writeObject(dataOutput, retData, methodPocket.getRetObj());
         }
-        if (params != null) {
+        if (params != null && methodPocket.hasParams()) {
             for (int i = 0; i < params.length; i++) {
                 writeObject(dataOutput, params[i], methodPocket.getParamsObject().get(i));
             }
@@ -85,13 +86,14 @@ class ImcMethodDesc {
         val dataInput = new DataInputStream(new ByteArrayInputStream(bytes));
         val methodPocket = MethodPocket.builder();
         int methodCode = dataInput.readInt();
+        byte flag = dataInput.readByte();
         if (this.methodCode != methodCode) {
             return null;
         }
-        if (retData != null) {
+        if (retData != null && ImcMethodDescFlags.hasSendRetObj(flag)) {
             methodPocket.retObj(readObject(dataInput, retData));
         }
-        if (params != null) {
+        if (params != null && ImcMethodDescFlags.hasSendParams(flag)) {
             for (ImcClassDesc param : params) {
                 methodPocket.addParam(readObject(dataInput, param));
             }

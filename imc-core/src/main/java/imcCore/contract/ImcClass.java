@@ -60,6 +60,9 @@ class ImcClass {
             }
             return 0;
         });
+        for (int i = 0; i < contractMethod.size(); i++) {
+            contractMethod.get(i).setMethodIndex(i);
+        }
     }
 
     public Stream<Method> getContractMethods() {
