@@ -36,6 +36,9 @@ public class ContractImplRunners<T> implements Runnable {
 
     private byte[] readData(DataInputStream input) throws IOException {
         int sizeOfData = input.readInt();
+        if (sizeOfData <= 0) {
+            return null;
+        }
         byte[] data = new byte[sizeOfData];
         IoUtils.read(input, data, sizeOfData);
         return data;
@@ -52,8 +55,13 @@ public class ContractImplRunners<T> implements Runnable {
     }
 
     private MethodPocket invokeContract(ImcMethod imcMethod, MethodPocket receivedData) throws InvocationTargetException, IllegalAccessException {
-        Object retObj = imcMethod.getMethod().invoke(impl, receivedData.getParamsObject());
-        return new MethodPocket(retObj, null);
+        try {
+            Object retObj = imcMethod.getMethod().invoke(impl, receivedData.getParamsObject().toArray());
+            return new MethodPocket(retObj, null);
+        } catch (java.lang.IllegalArgumentException ex) {
+            //TODO print to log
+            return null;
+        }
     }
 
     @Override
@@ -65,17 +73,32 @@ public class ContractImplRunners<T> implements Runnable {
                 val cOutput = client.getOutputStream();
                 val cInputData = new DataInputStream(cInput);
                 val cOutputData = new DataOutputStream(cOutput);
-                int version = startConnect(cInputData, cOutputData);
+                val version = startConnect(cInputData, cOutputData);
                 byte[] data = readData(cInputData);
-                ImcMethod imcMethod = getImcMethod(data);
-                MethodPocket receivedData = imcMethod.read(data);
-                MethodPocket sentData = invokeContract(imcMethod, receivedData);
-                data = imcMethod.write(sentData);
-                cOutputData.writeInt(data.length);
-                IoUtils.write(cOutputData, data, data.length);
+                if (data != null) {
+                    ImcMethod imcMethod = getImcMethod(data);
+                    MethodPocket receivedData = imcMethod.read(data);
+                    MethodPocket sentData = invokeContract(imcMethod, receivedData);
+                    if (sentData != null) {
+                        data = imcMethod.write(sentData);
+                        cOutputData.writeInt(data.length);
+                        IoUtils.write(cOutputData, data, data.length);
+                    }
+                }
             } catch (IOException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
+                //TODO print to log
                 e.printStackTrace();
             }
+        }
+    }
+
+    public void stopRunner() {
+        isStopServer = true;
+        try {
+            socket.close();
+        } catch (IOException e) {
+            //TODO print to log
+            e.printStackTrace();
         }
     }
 }

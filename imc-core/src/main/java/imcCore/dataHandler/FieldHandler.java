@@ -34,6 +34,7 @@ class FieldHandler {
         try {
             unsafeConstructor = Unsafe.class.getDeclaredConstructor();
         } catch (NoSuchMethodException e) {
+            //TODO print to log
             e.printStackTrace();
         }
         assert unsafeConstructor != null;
@@ -41,6 +42,7 @@ class FieldHandler {
         try {
             newUnsafe = unsafeConstructor.newInstance();
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+            //TODO print to log
             e.printStackTrace();
         }
         unsafe = newUnsafe;
