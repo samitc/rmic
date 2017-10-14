@@ -14,6 +14,7 @@ import org.junit.*;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -21,7 +22,7 @@ import java.net.Socket;
 public class ContractImplRunnersTest {
     private final static int PORT = 44444;
     private final static int VERSION = 1;
-    private final static int SLEEP_TIME_WAIT_EXCEPTION = 100;
+    private final static int SLEEP_TIME_WAIT_EXCEPTION = 50;
     private static IContractOverloadingImpl impl;
     private static ImcClass imcClass;
     private static ContractImplRunners<IContractOverloadingImpl> contractImpl;
@@ -58,10 +59,23 @@ public class ContractImplRunnersTest {
         byte[] buf = imcMethod.write(send);
         output.writeInt(buf.length);
         output.write(buf);
-        buf = new byte[input.readInt()];
-        int readed = input.read(buf);
-        Assert.assertEquals(buf.length, readed);
-        return imcMethod.read(buf);
+        if (!imcMethod.isSendResult()) {
+            boolean exHappen = false;
+            try {
+                Assert.assertEquals(-1, input.readInt());
+            } catch (EOFException ex) {
+                exHappen = true;
+            }
+            Assert.assertTrue(exHappen);
+            client.close();
+            return null;
+        } else {
+            buf = new byte[input.readInt()];
+            int readed = input.read(buf);
+            Assert.assertEquals(buf.length, readed);
+            client.close();
+            return imcMethod.read(buf);
+        }
     }
 
     @Test
@@ -136,6 +150,7 @@ public class ContractImplRunnersTest {
     @Test
     public void testEmptyMethod() throws IOException, InstantiationException, IllegalAccessException {
         MethodPocket retData = sendRunner(new MethodPocket(null, null), 0);
+        Assert.assertNotNull(retData);
         Assert.assertEquals(null, retData.getRetObj());
         Assert.assertEquals(1, impl.f1V);
     }
@@ -143,6 +158,7 @@ public class ContractImplRunnersTest {
     @Test
     public void testReturnParam() throws IllegalAccessException, IOException, InstantiationException {
         MethodPocket retData = sendRunner(MethodPocket.builder().addParam(6).build(), 4);
+        Assert.assertNotNull(retData);
         Assert.assertEquals(6, retData.getRetObj());
         Assert.assertEquals(1, impl.f3II);
     }
@@ -150,7 +166,21 @@ public class ContractImplRunnersTest {
     @Test
     public void testNotReturnData() throws IllegalAccessException, IOException, InstantiationException {
         MethodPocket retData = sendRunner(new MethodPocket(null, null), 3);
-        Assert.assertNull(retData.getRetObj());
+        Assert.assertNull(retData);
         Assert.assertEquals(1, impl.f3I);
+    }
+
+    @Test
+    public void testNotReturnDataM() throws IllegalAccessException, IOException, InstantiationException {
+        MethodPocket retData = sendRunner(new MethodPocket(null, null), 3);
+        Assert.assertNull(retData);
+        Assert.assertEquals(1, impl.f3I);
+        retData = sendRunner(new MethodPocket(null, null), 3);
+        Assert.assertNull(retData);
+        Assert.assertEquals(2, impl.f3I);
+        retData = sendRunner(MethodPocket.builder().addParam(6).build(), 4);
+        Assert.assertNotNull(retData);
+        Assert.assertEquals(6, retData.getRetObj());
+        Assert.assertEquals(1, impl.f3II);
     }
 }

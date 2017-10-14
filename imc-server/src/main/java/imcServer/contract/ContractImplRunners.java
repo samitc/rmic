@@ -4,13 +4,11 @@ import Utils.IoUtils.IoUtils;
 import imcCore.contract.ImcClass;
 import imcCore.contract.ImcMethod;
 import imcCore.dataHandler.MethodPocket;
-import lombok.val;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.net.ServerSocket;
+import java.net.Socket;
 
 public class ContractImplRunners<T> implements Runnable {
     private final T impl;
@@ -18,19 +16,19 @@ public class ContractImplRunners<T> implements Runnable {
     private final ServerSocket socket;
     private volatile boolean isStopServer;
 
-    public ContractImplRunners(T impl, ImcClass imcClass, int port) throws IOException {
+    ContractImplRunners(T impl, ImcClass imcClass, int port) throws IOException {
         this.impl = impl;
         this.imcClass = imcClass;
         socket = new ServerSocket(port);
         isStopServer = false;
     }
 
-    private int handShake(DataInputStream cInputData, DataOutputStream cOutputData) throws IOException {
+    private int handShake(DataInput cInputData, DataOutput cOutputData) throws IOException {
         cOutputData.writeInt(ContractImpl.getVersion());
         return cInputData.readInt();// read version from the client
     }
 
-    private int startConnect(DataInputStream cInputData, DataOutputStream cOutputData) throws IOException {
+    private int startConnect(DataInput cInputData, DataOutput cOutputData) throws IOException {
         return handShake(cInputData, cOutputData);
     }
 
@@ -57,7 +55,11 @@ public class ContractImplRunners<T> implements Runnable {
     private MethodPocket invokeContract(ImcMethod imcMethod, MethodPocket receivedData) throws InvocationTargetException, IllegalAccessException {
         try {
             Object retObj = imcMethod.getMethod().invoke(impl, receivedData.getParamsObject().toArray());
-            return new MethodPocket(retObj, null);
+            if (imcMethod.isSendResult()) {
+                return new MethodPocket(retObj, null);
+            } else {
+                return null;
+            }
         } catch (java.lang.IllegalArgumentException ex) {
             //TODO print to log
             return null;
@@ -67,13 +69,18 @@ public class ContractImplRunners<T> implements Runnable {
     @Override
     public void run() {
         while (!isStopServer) {
+            Socket client = null;
+            InputStream cInput = null;
+            OutputStream cOutput = null;
+            DataInputStream cInputData = null;
+            DataOutputStream cOutputData = null;
             try {
-                val client = socket.accept();
-                val cInput = client.getInputStream();
-                val cOutput = client.getOutputStream();
-                val cInputData = new DataInputStream(cInput);
-                val cOutputData = new DataOutputStream(cOutput);
-                val version = startConnect(cInputData, cOutputData);
+                client = socket.accept();
+                cInput = client.getInputStream();
+                cOutput = client.getOutputStream();
+                cInputData = new DataInputStream(cInput);
+                cOutputData = new DataOutputStream(cOutput);
+                int version = startConnect(cInputData, cOutputData);
                 byte[] data = readData(cInputData);
                 if (data != null) {
                     ImcMethod imcMethod = getImcMethod(data);
@@ -88,11 +95,33 @@ public class ContractImplRunners<T> implements Runnable {
             } catch (IOException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
                 //TODO print to log
                 e.printStackTrace();
+            } finally {
+                try {
+                    if (cOutputData != null) {
+                        cOutputData.close();
+                    }
+                    if (cInputData != null) {
+                        cInputData.close();
+                    }
+                    if (cOutput != null) {
+                        cOutput.close();
+                    }
+                    if (cInput != null) {
+                        cInput.close();
+                    }
+                    if (client != null) {
+                        client.close();
+                    }
+                } catch (IOException e) {
+                    //TODO print to log
+                    e.printStackTrace();
+
+                }
             }
         }
     }
 
-    public void stopRunner() {
+    void stopRunner() {
         isStopServer = true;
         try {
             socket.close();

@@ -11,6 +11,7 @@ public class IContractOverloadingImpl implements IContractOverloading {
     public int f3VS = 0;
     public int f4VB = 0;
     public int f4VI = 0;
+    public String f3VS_S = null;
 
     @Override
     public void f1() {
@@ -24,6 +25,7 @@ public class IContractOverloadingImpl implements IContractOverloading {
 
     @Override
     public void f3(String str) {
+        f3VS_S = str;
         f3VS++;
     }
 
@@ -68,5 +70,6 @@ public class IContractOverloadingImpl implements IContractOverloading {
         f3VS = 0;
         f4VB = 0;
         f4VI = 0;
+        f3VS_S = null;
     }
 }
