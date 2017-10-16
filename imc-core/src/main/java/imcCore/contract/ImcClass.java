@@ -65,8 +65,17 @@ class ImcClass {
         }
     }
 
-    public Stream<Method> getContractMethods() {
+    Stream<Method> getContractMethods() {
         return contractMethod.stream().map(ImcMethod::getMethod);
+    }
+
+    public int getMethodIndex(Method method) {
+        for (int i = 0; i < contractMethod.size(); i++) {
+            if (method.equals(contractMethod.get(i).getMethod())) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     public ImcMethod getImcMethod(int index) {

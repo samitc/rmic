@@ -60,7 +60,7 @@ public class ContractImplRunners<T> implements Runnable {
             } else {
                 return null;
             }
-        } catch (java.lang.IllegalArgumentException ex) {
+        } catch (IllegalArgumentException ex) {
             //TODO print to log
             return null;
         }
@@ -118,6 +118,12 @@ public class ContractImplRunners<T> implements Runnable {
 
                 }
             }
+        }
+        try {
+            socket.close();
+        } catch (IOException e) {
+            //TODO print to log
+            e.printStackTrace();
         }
     }
 

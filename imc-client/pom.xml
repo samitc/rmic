@@ -9,4 +9,23 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>imc-client</artifactId>
+    <dependencies>
+        <dependency>
+            <groupId>com.github.samitc.imc</groupId>
+            <artifactId>imc-core</artifactId>
+            <version>${maven.imc.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.samitc.imc</groupId>
+            <artifactId>imc-core</artifactId>
+            <version>${maven.imc.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.github.samitc.utils</groupId>
+            <artifactId>io-utils</artifactId>
+            <version>0.1.1</version>
+        </dependency>
+    </dependencies>
 </project>

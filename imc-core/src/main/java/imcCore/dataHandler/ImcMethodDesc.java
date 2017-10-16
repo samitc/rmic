@@ -40,14 +40,7 @@ public class ImcMethodDesc {
     }
 
     private static int getMethodPos(Method method, ImcClass imcClass) {
-        Method[] methods = imcClass.getContractMethods().toArray(Method[]::new);
-        int metPos = -1;
-        for (int i = 0; metPos == -1 && i < methods.length; i++) {
-            if (method == methods[i]) {
-                metPos = i;
-            }
-        }
-        return metPos;
+        return imcClass.getMethodIndex(method);
     }
 
     private static void writeObject(DataOutput output, ImcClassDesc classDesc, Object obj) throws IOException {
