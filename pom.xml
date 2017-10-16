@@ -10,6 +10,7 @@
     <packaging>pom</packaging>
     <properties>
         <maven.plugin.build.version>3.7.0</maven.plugin.build.version>
+        <maven.plugin.jar.version>3.0.2</maven.plugin.jar.version>
         <maven.source.lombok.version>1.16.18</maven.source.lombok.version>
         <maven.testing.junit.version>4.12</maven.testing.junit.version>
         <maven.imc.version>1.0.0-SNAPSHOT</maven.imc.version>

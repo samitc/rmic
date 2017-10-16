@@ -1,12 +1,10 @@
 package imcCore.dataHandler.classHandlers;
 
 import imcCore.dataHandler.FieldHandler;
-import sun.misc.Unsafe;
 
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.io.OutputStream;
 
 public class DoubleClassHandler implements ITypeContract<Double> {
 

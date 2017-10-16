@@ -1,7 +1,6 @@
 package imcCore.dataHandler.classHandlers;
 
 import imcCore.dataHandler.FieldHandler;
-import sun.misc.Unsafe;
 
 import java.io.DataInput;
 import java.io.DataOutput;

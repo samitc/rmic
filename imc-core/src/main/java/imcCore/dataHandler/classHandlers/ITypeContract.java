@@ -3,7 +3,6 @@ package imcCore.dataHandler.classHandlers;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.io.InputStream;
 
 public interface ITypeContract<T> {
     int getType();
