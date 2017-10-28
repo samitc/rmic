@@ -7,20 +7,45 @@ import imcCore.dataHandler.MethodPocket;
 
 import java.io.*;
 import java.lang.reflect.InvocationTargetException;
-import java.net.ServerSocket;
-import java.net.Socket;
 
-public class ContractImplRunners<T> implements Runnable {
+public abstract class ContractImplRunners<T> {
     private final T impl;
     private final ImcClass imcClass;
-    private final ServerSocket socket;
-    private volatile boolean isStopServer;
 
     ContractImplRunners(T impl, ImcClass imcClass, int port) throws IOException {
         this.impl = impl;
         this.imcClass = imcClass;
-        socket = new ServerSocket(port);
-        isStopServer = false;
+    }
+
+    static <T> ContractImplRunners<T> createContractImplRunners(T impl, ImcClass imcClass, int port, boolean isPersistance) throws IOException {
+        return isPersistance ? new PersistentContractImplRunner<>(impl, imcClass, port) : new NonPersistentConractImplRunner<>(impl, imcClass, port);
+    }
+
+    final int handleNewClient(DataInput cInputData, DataOutput cOutputData) throws IOException {
+        int version = startConnect(cInputData, cOutputData);
+        writeServerConfig(cInputData, cOutputData);
+        matchImcClassDesc(cInputData, cOutputData);
+        return version;
+    }
+
+    final void invokeMethod(DataInputStream input, DataOutputStream output, int bufSize) throws IOException, InstantiationException, IllegalAccessException, InvocationTargetException {
+        byte[] data = readData(input, bufSize);
+        if (data != null) {
+            ImcMethod imcMethod = getImcMethod(data);
+            MethodPocket receivedData = imcMethod.read(data);
+            MethodPocket sentData = invokeContract(imcMethod, receivedData);
+            if (sentData != null) {
+                data = imcMethod.write(sentData);
+                output.writeInt(data.length);
+                IoUtils.write(output, data, data.length);
+            }
+        }
+    }
+
+    abstract void writeServerConfig(DataInput cInputData, DataOutput cOutputData) throws IOException;
+
+    private void matchImcClassDesc(DataInput cInputData, DataOutput cOutputData) {
+
     }
 
     private int handShake(DataInput cInputData, DataOutput cOutputData) throws IOException {
@@ -32,8 +57,7 @@ public class ContractImplRunners<T> implements Runnable {
         return handShake(cInputData, cOutputData);
     }
 
-    private byte[] readData(DataInputStream input) throws IOException {
-        int sizeOfData = input.readInt();
+    private byte[] readData(DataInputStream input, int sizeOfData) throws IOException {
         if (sizeOfData <= 0) {
             return null;
         }
@@ -66,74 +90,11 @@ public class ContractImplRunners<T> implements Runnable {
         }
     }
 
-    @Override
-    public void run() {
-        while (!isStopServer) {
-            Socket client = null;
-            InputStream cInput = null;
-            OutputStream cOutput = null;
-            DataInputStream cInputData = null;
-            DataOutputStream cOutputData = null;
-            try {
-                client = socket.accept();
-                cInput = client.getInputStream();
-                cOutput = client.getOutputStream();
-                cInputData = new DataInputStream(cInput);
-                cOutputData = new DataOutputStream(cOutput);
-                int version = startConnect(cInputData, cOutputData);
-                byte[] data = readData(cInputData);
-                if (data != null) {
-                    ImcMethod imcMethod = getImcMethod(data);
-                    MethodPocket receivedData = imcMethod.read(data);
-                    MethodPocket sentData = invokeContract(imcMethod, receivedData);
-                    if (sentData != null) {
-                        data = imcMethod.write(sentData);
-                        cOutputData.writeInt(data.length);
-                        IoUtils.write(cOutputData, data, data.length);
-                    }
-                }
-            } catch (IOException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
-                //TODO print to log
-                e.printStackTrace();
-            } finally {
-                try {
-                    if (cOutputData != null) {
-                        cOutputData.close();
-                    }
-                    if (cInputData != null) {
-                        cInputData.close();
-                    }
-                    if (cOutput != null) {
-                        cOutput.close();
-                    }
-                    if (cInput != null) {
-                        cInput.close();
-                    }
-                    if (client != null) {
-                        client.close();
-                    }
-                } catch (IOException e) {
-                    //TODO print to log
-                    e.printStackTrace();
+    abstract void stopRunner();
 
-                }
-            }
-        }
-        try {
-            socket.close();
-        } catch (IOException e) {
-            //TODO print to log
-            e.printStackTrace();
-        }
-    }
+    abstract void startServerAsync();
 
-    void stopRunner() {
-        isStopServer = true;
-        try {
-            socket.close();
-        } catch (IOException e) {
-            //TODO print to log
-            e.printStackTrace();
-        }
-    }
+    abstract void startServer();
+
+    abstract boolean isServerRun();
 }

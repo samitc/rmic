@@ -28,6 +28,7 @@ public class ContractCallerTest {
     private static int methodIndex;
     private static MethodPocket methodPocket;
     private static MethodPocket retMethodPocket;
+    private static boolean isPers;
     private static volatile boolean finishPutRes;
     private static int serverCalcTime;
 
@@ -36,6 +37,7 @@ public class ContractCallerTest {
         serverSocket = new ServerSocket(PORT);
         imcClass = new ImcClass(IContractOverloading.class);
         server = new Thread(() -> {
+            boolean isPersistencePass = false;
             try {
                 while (true) {
                     Socket client = serverSocket.accept();
@@ -44,6 +46,17 @@ public class ContractCallerTest {
                     DataInputStream input = new DataInputStream(client.getInputStream());
                     output.writeInt(VERSION);
                     input.readInt();//read version
+                    if (isPers) {
+                        output.write(1);
+                    } else {
+                        output.write(0);
+                        if (!isPersistencePass) {
+                            isPersistencePass = true;
+                            client.close();
+                            continue;
+                        }
+                    }
+                    isPersistencePass = false;
                     byte[] buf = new byte[input.readInt()];
                     input.read(buf);
                     methodIndex = ((buf[0] & 0xFF) << 24) | ((buf[1] & 0xFF) << 16)
@@ -77,9 +90,10 @@ public class ContractCallerTest {
         }
     }
 
-    private static void initStaticVars(int methodI, int serverCalcTime, Object retObj, Object... params) {
+    private static void initStaticVars(int methodI, int serverCalcTime, boolean isPers, Object retObj, Object... params) {
         methodIndex = methodI;
         ContractCallerTest.serverCalcTime = serverCalcTime;
+        ContractCallerTest.isPers = isPers;
         retMethodPocket = new MethodPocket(retObj, null);
         List<Object> paramsL = null;
         if (params != null) {
@@ -101,35 +115,74 @@ public class ContractCallerTest {
     }
 
     @Test
-    public void testEmptyMethod() throws NotContractInterfaceType, NotInterfaceType {
+    public void testEmptyMethod() throws NotContractInterfaceType, NotInterfaceType, IOException {
+        initStaticVars(0, 0, false, null, (Object[]) null);
         IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
-        initStaticVars(0, 0, null, (Object[]) null);
         contractOverloading.f1();
         testStaticVars(0, null, (Object[]) null);
     }
 
     @Test
-    public void testReturnParam() throws NotContractInterfaceType, NotInterfaceType {
+    public void testReturnParam() throws NotContractInterfaceType, NotInterfaceType, IOException {
+        initStaticVars(4, 0, false, 6, 6);
         IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
-        initStaticVars(4, 0, 6, 6);
         contractOverloading.f3(6);
         testStaticVars(4, 6, 6);
     }
 
     @Test
-    public void testNotReturnData() throws NotContractInterfaceType, NotInterfaceType {
+    public void testNotReturnData() throws NotContractInterfaceType, NotInterfaceType, IOException {
+        initStaticVars(3, 0, false, 6, (Object[]) null);
         IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
-        initStaticVars(3, 0, 6, (Object[]) null);
         contractOverloading.f3();
         testStaticVars(3, null, (Object[]) null);
     }
 
     @Test
-    public void testNotWaitWhenNoResult() throws NotContractInterfaceType, NotInterfaceType {
+    public void testNotWaitWhenNoResult() throws NotContractInterfaceType, NotInterfaceType, IOException {
         final int WAIT_TIME = 1000;
         final float DELTA = 50;
+        initStaticVars(3, WAIT_TIME, false, 6, (Object[]) null);
         IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
-        initStaticVars(3, WAIT_TIME, 6, (Object[]) null);
+        long startMili = System.currentTimeMillis();
+        contractOverloading.f3();
+        long endMili = System.currentTimeMillis();
+        Assert.assertEquals(0, endMili - startMili, DELTA);
+        testStaticVars(3, null, (Object[]) null);
+        long endServer = System.currentTimeMillis();
+        Assert.assertEquals(WAIT_TIME, endServer - startMili, DELTA);
+    }
+
+    @Test
+    public void testEmptyMethodP() throws NotContractInterfaceType, NotInterfaceType, IOException {
+        initStaticVars(0, 0, true, null, (Object[]) null);
+        IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
+        contractOverloading.f1();
+        testStaticVars(0, null, (Object[]) null);
+    }
+
+    @Test
+    public void testReturnParamP() throws NotContractInterfaceType, NotInterfaceType, IOException {
+        initStaticVars(4, 0, true, 6, 6);
+        IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
+        contractOverloading.f3(6);
+        testStaticVars(4, 6, 6);
+    }
+
+    @Test
+    public void testNotReturnDataP() throws NotContractInterfaceType, NotInterfaceType, IOException {
+        initStaticVars(3, 0, true, 6, (Object[]) null);
+        IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
+        contractOverloading.f3();
+        testStaticVars(3, null, (Object[]) null);
+    }
+
+    @Test
+    public void testNotWaitWhenNoResultP() throws NotContractInterfaceType, NotInterfaceType, IOException {
+        final int WAIT_TIME = 1000;
+        final float DELTA = 50;
+        initStaticVars(3, WAIT_TIME, true, 6, (Object[]) null);
+        IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
         long startMili = System.currentTimeMillis();
         contractOverloading.f3();
         long endMili = System.currentTimeMillis();

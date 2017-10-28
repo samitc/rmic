@@ -22,7 +22,6 @@ public class ContractImpl<T> {
     private final T impl;
     private final ImcClass imcClass;
     private final List<ContractImplRunners<T>> contractImplRunners;
-    private final List<Thread> contractImplRunnersThreads;
 
     public ContractImpl(T impl, ImcClass imcClass) throws ImplNotMaintainInterface {
         boolean isTImplImc = imcClass.getImcClass().isAssignableFrom(impl.getClass());
@@ -32,14 +31,15 @@ public class ContractImpl<T> {
         this.impl = impl;
         this.imcClass = imcClass;
         contractImplRunners = new ArrayList<>();
-        contractImplRunnersThreads = new ArrayList<>();
     }
 
     public void open(int port) throws IOException {
-        ContractImplRunners<T> contractImplRunner = new ContractImplRunners<>(impl, imcClass, port);
-        Thread newRunner = new Thread(contractImplRunner);
-        newRunner.start();
+        ContractImplRunners<T> contractImplRunner = ContractImplRunners.createContractImplRunners(impl, imcClass, port, true);
+        contractImplRunner.startServerAsync();
         contractImplRunners.add(contractImplRunner);
-        contractImplRunnersThreads.add(newRunner);
+    }
+
+    public void close() {
+        contractImplRunners.forEach(ContractImplRunners::stopRunner);
     }
 }
