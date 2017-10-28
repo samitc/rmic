@@ -22,10 +22,10 @@ import java.net.Socket;
 public class ContractImplRunnersNonPerTest {
     private final static int PORT = 44444;
     private final static int VERSION = 1;
-    private final static int SLEEP_TIME_WAIT_EXCEPTION = 50;
     private static IContractOverloadingImpl impl;
     private static ImcClass imcClass;
     private static ContractImplRunners<IContractOverloadingImpl> contractImpl;
+
     @BeforeClass
     public static void CreateRunner() throws NotContractInterfaceType, NotInterfaceType, IOException {
         imcClass = new ImcClass(IContractOverloading.class);
@@ -44,7 +44,7 @@ public class ContractImplRunnersNonPerTest {
         impl.resetCals();
     }
 
-    private MethodPocket sendRunner(MethodPocket send, int methodIndex) throws IllegalAccessException, IOException, InstantiationException {
+    private void serverDataFirstConnect() throws IOException {
         val client = new Socket();
         client.connect(new InetSocketAddress("localhost", PORT));
         DataInputStream input = new DataInputStream(client.getInputStream());
@@ -52,6 +52,22 @@ public class ContractImplRunnersNonPerTest {
         Assert.assertEquals(VERSION, input.readInt());
         output.writeInt(VERSION);
         boolean isPer = input.read() > 0;
+        Assert.assertFalse(isPer);
+        input.close();
+        output.close();
+        client.close();
+    }
+
+    private MethodPocket sendRunner(MethodPocket send, int methodIndex) throws IllegalAccessException, IOException, InstantiationException {
+        serverDataFirstConnect();
+        val client = new Socket();
+        client.connect(new InetSocketAddress("localhost", PORT));
+        DataInputStream input = new DataInputStream(client.getInputStream());
+        DataOutputStream output = new DataOutputStream(client.getOutputStream());
+        Assert.assertEquals(VERSION, input.readInt());
+        output.writeInt(VERSION);
+        boolean isPer = input.read() > 0;
+        Assert.assertFalse(isPer);
         ImcMethod imcMethod = imcClass.getImcMethod(methodIndex);
         byte[] buf = imcMethod.write(send);
         output.writeInt(buf.length);
@@ -172,5 +188,27 @@ public class ContractImplRunnersNonPerTest {
         Assert.assertNotNull(retData);
         Assert.assertEquals(6, retData.getRetObj());
         Assert.assertEquals(1, impl.f3II);
+    }
+
+    @Test
+    public void testManyReq() throws IllegalAccessException, IOException, InstantiationException {
+        MethodPocket retData;
+        MethodPocket paramData = new MethodPocket(null, null);
+        MethodPocket secFunctionParamData = MethodPocket.builder().addParam(6).build();
+        final int COUNT = 1000;
+        int secMethodCount = 0;
+        for (int i = 0; i < COUNT; i++) {
+            retData = sendRunner(paramData, 3);
+            if (i % 15 >= 10) {
+                secMethodCount++;
+                retData = sendRunner(secFunctionParamData, 4);
+            }
+        }
+        retData = sendRunner(paramData, 3);
+        retData = sendRunner(secFunctionParamData, 4);
+        Assert.assertNotNull(retData);
+        Assert.assertEquals(6, retData.getRetObj());
+        Assert.assertEquals(COUNT + 1, impl.f3I);
+        Assert.assertEquals(secMethodCount + 1, impl.f3II);
     }
 }

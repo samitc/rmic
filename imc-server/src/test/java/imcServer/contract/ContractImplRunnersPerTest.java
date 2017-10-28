@@ -21,7 +21,6 @@ import java.net.Socket;
 public class ContractImplRunnersPerTest {
     private final static int PORT = 44444;
     private final static int VERSION = 1;
-    private final static int SLEEP_TIME_WAIT_EXCEPTION = 50;
     private static IContractOverloadingImpl impl;
     private static ImcClass imcClass;
     private static ContractImplRunners<IContractOverloadingImpl> contractImpl;
@@ -175,5 +174,27 @@ public class ContractImplRunnersPerTest {
         Assert.assertNotNull(retData);
         Assert.assertEquals(6, retData.getRetObj());
         Assert.assertEquals(1, impl.f3II);
+    }
+
+    @Test
+    public void testManyReq() throws IllegalAccessException, IOException, InstantiationException {
+        MethodPocket retData;
+        MethodPocket paramData = new MethodPocket(null, null);
+        MethodPocket secFunctionParamData = MethodPocket.builder().addParam(6).build();
+        final int COUNT = 1000;
+        int secMethodCount = 0;
+        for (int i = 0; i < COUNT; i++) {
+            retData = sendRunner(paramData, 3, false);
+            if (i % 15 >= 10) {
+                secMethodCount++;
+                retData = sendRunner(secFunctionParamData, 4, false);
+            }
+        }
+        retData = sendRunner(paramData, 3, false);
+        retData = sendRunner(secFunctionParamData, 4, false);
+        Assert.assertNotNull(retData);
+        Assert.assertEquals(6, retData.getRetObj());
+        Assert.assertEquals(COUNT + 1, impl.f3I);
+        Assert.assertEquals(secMethodCount + 1, impl.f3II);
     }
 }

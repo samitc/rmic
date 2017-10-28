@@ -14,6 +14,7 @@
         <maven.source.lombok.version>1.16.18</maven.source.lombok.version>
         <maven.testing.junit.version>4.12</maven.testing.junit.version>
         <maven.imc.version>1.0.0-SNAPSHOT</maven.imc.version>
+        <maven.jotils.version>0.1.1-SNAPSHOT</maven.jotils.version>
         <java.version>1.8</java.version>
     </properties>
     <build>
@@ -37,6 +38,11 @@
                 <artifactId>lombok</artifactId>
                 <version>${maven.source.lombok.version}</version>
                 <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.github.samitc.utils</groupId>
+                <artifactId>io-utils</artifactId>
+                <version>${maven.jotils.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
