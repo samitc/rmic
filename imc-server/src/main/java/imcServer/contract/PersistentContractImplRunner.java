@@ -1,13 +1,15 @@
 package imcServer.contract;
 
+import Utils.IoUtils.IoUtils;
 import imcCore.contract.ImcClass;
 
-import java.io.*;
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.*;
-import java.util.concurrent.ExecutionException;
+import java.nio.channels.AsynchronousChannelGroup;
+import java.nio.channels.AsynchronousServerSocketChannel;
+import java.nio.channels.AsynchronousSocketChannel;
+import java.nio.channels.CompletionHandler;
 import java.util.concurrent.Executors;
 
 class PersistentContractImplRunner<T> extends ContractImplRunners<T> {
@@ -23,14 +25,6 @@ class PersistentContractImplRunner<T> extends ContractImplRunners<T> {
     @Override
     void startServerAsync() {
         startServer();
-    }
-
-    private DataInputStream createInput(AsynchronousSocketChannel asynchronousSocketChannel) {
-        return new DataInputStream(Channels.newInputStream(asynchronousSocketChannel));
-    }
-
-    private DataOutputStream createOutput(AsynchronousSocketChannel asynchronousSocketChannel) {
-        return new DataOutputStream(Channels.newOutputStream(asynchronousSocketChannel));
     }
 
     @Override
@@ -67,38 +61,52 @@ class PersistentContractImplRunner<T> extends ContractImplRunners<T> {
     }
 
     private void handleNewClient(AsynchronousSocketChannel asynchronousSocketChannel) throws IOException {
-        int version = handleNewClient(createInput(asynchronousSocketChannel), createOutput(asynchronousSocketChannel));
-        final int REC_BUF_SIZE_L = 4;
-        ByteBuffer buf = ByteBuffer.allocate(REC_BUF_SIZE_L);
-        asynchronousSocketChannel.read(buf, null, new CompletionHandler<Integer, Object>() {
-            @Override
-            public void completed(Integer result, Object attachment) {
-                if (result > 0) {
-                    try {
-                        if (result < REC_BUF_SIZE_L) {
-                            asynchronousSocketChannel.read(buf).get();
-                        }
-                        buf.rewind();
-                        invokeMethod(createInput(asynchronousSocketChannel), createOutput(asynchronousSocketChannel), buf.getInt());
-                    } catch (IOException | InstantiationException | InvocationTargetException | IllegalAccessException | InterruptedException | ExecutionException e) {
-                        //TODO print to log
-                        e.printStackTrace();
-                    }
-                }
-                buf.rewind();
-                asynchronousSocketChannel.read(buf, null, this);
-            }
+        connectClient(asynchronousSocketChannel);
+    }
 
-            @Override
-            public void failed(Throwable exc, Object attachment) {
+    private void connectClient(AsynchronousSocketChannel asynchronousSocketChannel) {
+        IoUtils.write(asynchronousSocketChannel, getVersion(), (bytes, integer) -> IoUtils.read(asynchronousSocketChannel, INT_SIZE, (bytes1, integer1) -> {
+            int version = handShake(bytesToInt(bytes1));
+            initConnect(asynchronousSocketChannel);
+        }));
+    }
 
+    private void initConnect(AsynchronousSocketChannel asynchronousSocketChannel) {
+        IoUtils.write(asynchronousSocketChannel, getServerConf(), (bytes, integer) -> waitForInvoke(asynchronousSocketChannel));
+    }
+
+    private void waitForInvoke(AsynchronousSocketChannel asynchronousSocketChannel) {
+        IoUtils.read(asynchronousSocketChannel, INT_SIZE, (bytes, integer) -> {
+            int bufSize = bytesToInt(bytes);
+            if (bufSize > 0) {
+                readMethodInvokeBuf(asynchronousSocketChannel, bufSize);
+            } else {
+                waitForInvoke(asynchronousSocketChannel);
             }
         });
     }
 
-    @Override
-    void writeServerConfig(DataInput cInputData, DataOutput cOutputData) throws IOException {
-        cOutputData.write(1);
+    private void readMethodInvokeBuf(AsynchronousSocketChannel asynchronousSocketChannel, int bufSize) {
+        IoUtils.read(asynchronousSocketChannel, bufSize, (bytes, integer) -> {
+            try {
+                byte[] sendBuf = invokeMethod(bytes);
+                if (sendBuf != null) {
+                    IoUtils.write(asynchronousSocketChannel, intToBytes(sendBuf.length), (bytes1, integer1) ->
+                            IoUtils.write(asynchronousSocketChannel, sendBuf, (bytes2, integer2) ->
+                                    waitForInvoke(asynchronousSocketChannel)));
+                } else {
+                    waitForInvoke(asynchronousSocketChannel);
+                }
+            } catch (IllegalAccessException | IOException | InstantiationException | InvocationTargetException e) {
+                //TODO print to log
+                e.printStackTrace();
+                waitForInvoke(asynchronousSocketChannel);
+            }
+        });
+    }
+
+    private byte[] getServerConf() {
+        return new byte[]{1};
     }
 
     @Override

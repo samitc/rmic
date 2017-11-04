@@ -1,8 +1,11 @@
 package imcServer.contract;
 
+import Utils.IoUtils.IoUtils;
 import imcCore.contract.ImcClass;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -40,27 +43,23 @@ class NonPersistentConractImplRunner<T> extends ContractImplRunners<T> implement
             Socket client = null;
             InputStream cInput = null;
             OutputStream cOutput = null;
-            DataInputStream cInputData = null;
-            DataOutputStream cOutputData = null;
             try {
                 client = socket.accept();
                 cInput = client.getInputStream();
                 cOutput = client.getOutputStream();
-                cInputData = new DataInputStream(cInput);
-                cOutputData = new DataOutputStream(cOutput);
-                handleNewClient(cInputData, cOutputData);
-                invokeMethod(cInputData, cOutputData, cInputData.readInt());
-            } catch (IOException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
+                int version = handleNewClient(cInput, cOutput);
+                byte[] mBuf = readInvokeBuf(cInput);
+                if (mBuf != null) {
+                    byte[] rBuf = invokeMethod(mBuf);
+                    if (rBuf != null) {
+                        writeInvokeBuf(cOutput, rBuf);
+                    }
+                }
+            } catch (IOException | IllegalAccessException | InstantiationException | InvocationTargetException | IllegalArgumentException e) {
                 //TODO print to log
                 e.printStackTrace();
             } finally {
                 try {
-                    if (cOutputData != null) {
-                        cOutputData.close();
-                    }
-                    if (cInputData != null) {
-                        cInputData.close();
-                    }
                     if (cOutput != null) {
                         cOutput.close();
                     }
@@ -85,6 +84,41 @@ class NonPersistentConractImplRunner<T> extends ContractImplRunners<T> implement
         }
     }
 
+    private void writeInvokeBuf(OutputStream cOutput, byte[] rBuf) throws IOException {
+        IoUtils.write(cOutput, intToBytes(rBuf.length));
+        IoUtils.write(cOutput, rBuf);
+    }
+
+    private byte[] readInvokeBuf(InputStream cInput) throws IOException {
+        byte[] bufSize = new byte[INT_SIZE];
+        IoUtils.read(cInput, bufSize);
+        int size = bytesToInt(bufSize);
+        if (size <= 0) {
+            return null;
+        } else {
+            byte[] buf = new byte[bytesToInt(bufSize)];
+            IoUtils.read(cInput, buf);
+            return buf;
+        }
+    }
+
+    private int handleNewClient(InputStream cInput, OutputStream cOutput) throws IOException {
+        int version = handShake(cInput, cOutput);
+        writeServerConfig(cOutput);
+        return version;
+    }
+
+    private void writeServerConfig(OutputStream cOutput) throws IOException {
+        cOutput.write(0);
+    }
+
+    private int handShake(InputStream cInput, OutputStream cOutput) throws IOException {
+        IoUtils.write(cOutput, getVersion());
+        byte[] buf = new byte[INT_SIZE];
+        IoUtils.read(cInput, buf);
+        return handShake(bytesToInt(buf));
+    }
+
     @Override
     void stopRunner() {
         isStopServer = true;
@@ -100,10 +134,5 @@ class NonPersistentConractImplRunner<T> extends ContractImplRunners<T> implement
             //TODO print to log
             e.printStackTrace();
         }
-    }
-
-    @Override
-    void writeServerConfig(DataInput cInputData, DataOutput cOutputData) throws IOException {
-        cOutputData.write(0);
     }
 }
