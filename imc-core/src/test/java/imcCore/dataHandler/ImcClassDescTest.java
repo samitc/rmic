@@ -54,7 +54,7 @@ public class ImcClassDescTest {
             types[i] = FieldHandler.getTypeContract(fields[i].getType());
             pos[i]= (int) unsafe.objectFieldOffset(fields[i]);
             if (types[i] == null) {
-                data[i] = new ImcClassDesc(fields[i].getType());
+                data[i] = ImcClassDesc.getImcClassDesc(fields[i].getType());
             } else {
                 data[i] = null;
             }
@@ -65,7 +65,7 @@ public class ImcClassDescTest {
     }
 
     private static void testClass(Class<?> testClass) {
-        ImcClassDesc classData = new ImcClassDesc(testClass);
+        ImcClassDesc classData = ImcClassDesc.getImcClassDesc(testClass);
         List<ImcClassDesc> data = new ArrayList<>();
         List<Integer> pos = new ArrayList<>();
         List<ITypeContract<?>> types = new ArrayList<>();

@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 public @Data
@@ -31,7 +32,7 @@ class ImcMethod {
         return methodContract.sendResult();
     }
 
-    public MethodPocket read(byte[] buf) throws IllegalAccessException, IOException, InstantiationException {
+    public MethodPocket read(byte[] buf) throws IllegalAccessException, IOException, InstantiationException, NoSuchMethodException, InvocationTargetException {
         return getImcMethodDesc().fromBytes(buf);
     }
 

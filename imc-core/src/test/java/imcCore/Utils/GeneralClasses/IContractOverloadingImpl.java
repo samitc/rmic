@@ -11,6 +11,8 @@ public class IContractOverloadingImpl implements IContractOverloading {
     public int f3VS = 0;
     public int f4VB = 0;
     public int f4VI = 0;
+    public int f5SA = 0;
+    public int f6IA = 0;
     public String f3VS_S = null;
 
     @Override
@@ -54,6 +56,18 @@ public class IContractOverloadingImpl implements IContractOverloading {
     @Override
     public void f2(int a) {
         f2VI++;
+    }
+
+    @Override
+    public String[] f5() {
+        f5SA++;
+        return new String[]{"a", "b", "c", "d"};
+    }
+
+    @Override
+    public int[] f6() {
+        f6IA++;
+        return new int[]{1, 2, 3, 4, 9};
     }
 
     @Override

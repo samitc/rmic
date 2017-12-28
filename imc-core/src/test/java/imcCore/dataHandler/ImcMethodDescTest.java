@@ -14,6 +14,7 @@ import org.junit.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 
@@ -22,17 +23,17 @@ public class ImcMethodDescTest {
         ImcClass imcClass1 = new ImcClass(imcClass);
         Method method = imcClass1.getImcMethod(mIndex).getMethod();
         ImcMethodDesc methodData = new ImcMethodDesc(method, imcClass1);
-        ImcClassDesc imcRetType = method.getAnnotation(ContractMethod.class).sendResult() ? new ImcClassDesc(retType) : null;
+        ImcClassDesc imcRetType = method.getAnnotation(ContractMethod.class).sendResult() ? ImcClassDesc.getImcClassDesc(retType) : null;
         Assert.assertEquals(imcRetType, methodData.getRetData());
         if (args == null) {
             Assert.assertNull(methodData.getParams());
         } else {
-            Assert.assertArrayEquals(Arrays.stream(args).map(ImcClassDesc::new).toArray(ImcClassDesc[]::new), methodData.getParams());
+            Assert.assertArrayEquals(Arrays.stream(args).map(ImcClassDesc::getImcClassDesc).toArray(ImcClassDesc[]::new), methodData.getParams());
         }
     }
 
     private static void writeObject(DataOutputStream output, Object obj) throws IOException {
-        ImcClassDesc classDesc = new ImcClassDesc(obj.getClass());
+        ImcClassDesc classDesc = ImcClassDesc.getImcClassDesc(obj.getClass());
         if (classDesc.getClassData().isPrimitive()) {
             FieldHandler.getTypeContract(classDesc.getClassData()).writeO(output, obj);
         } else {
@@ -40,7 +41,7 @@ public class ImcMethodDescTest {
         }
     }
 
-    private static void testImcMethod(Class<?> imcClass, int mIndex, Object retObj, Object... args) throws IOException, NotContractInterfaceType, NotInterfaceType, InstantiationException, IllegalAccessException {
+    private static void testImcMethod(Class<?> imcClass, int mIndex, Object retObj, Object... args) throws IOException, NotContractInterfaceType, NotInterfaceType, InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
         // this not working right now because if int send as parameter it become Integer
         //testImcMethod(imcClass, mIndex, retObj == null ? void.class : retObj.getClass(), args == null ? null : Arrays.stream(args).map(Object::getClass).toArray(Class<?>[]::new));
         val imcClass1 = new ImcClass(imcClass);
@@ -112,37 +113,37 @@ public class ImcMethodDescTest {
     }
 
     @Test
-    public void testWriteByte() throws NotContractInterfaceType, NotInterfaceType, IOException, IllegalAccessException, InstantiationException {
+    public void testWriteByte() throws NotContractInterfaceType, NotInterfaceType, IOException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
         testImcMethod(IContract.class, 1, null, 4);
     }
 
     @Test
-    public void testWriteByteMultiParams() throws NotContractInterfaceType, IOException, NotInterfaceType, IllegalAccessException, InstantiationException {
+    public void testWriteByteMultiParams() throws NotContractInterfaceType, IOException, NotInterfaceType, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
         testImcMethod(IContractOverloading.class, 2, null, 6, false);
     }
 
     @Test
-    public void testWriteByteStringParam() throws NotContractInterfaceType, IOException, NotInterfaceType, IllegalAccessException, InstantiationException {
+    public void testWriteByteStringParam() throws NotContractInterfaceType, IOException, NotInterfaceType, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
         testImcMethod(IContractOverloading.class, 5, null, "test write byte string param");
     }
 
     @Test
-    public void testWriteByteIntReturn() throws NotContractInterfaceType, IOException, NotInterfaceType, IllegalAccessException, InstantiationException {
+    public void testWriteByteIntReturn() throws NotContractInterfaceType, IOException, NotInterfaceType, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
         testImcMethod(IContract.class, 2, 6, (Object[]) null);
     }
 
     @Test
-    public void testWriteByteParamAndReturnInt() throws NotContractInterfaceType, IOException, NotInterfaceType, IllegalAccessException, InstantiationException {
+    public void testWriteByteParamAndReturnInt() throws NotContractInterfaceType, IOException, NotInterfaceType, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
         testImcMethod(IContractOverloading.class, 4, 3, 7);
     }
 
     @Test
-    public void testWriteByteParamAndReturnIntNoRet() throws NotContractInterfaceType, IOException, NotInterfaceType, IllegalAccessException, InstantiationException {
+    public void testWriteByteParamAndReturnIntNoRet() throws NotContractInterfaceType, IOException, NotInterfaceType, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
         testImcMethod(IContractOverloading.class, 4, null, 7);
     }
 
     @Test
-    public void testWriteByteParamAndReturnIntNoParams() throws NotContractInterfaceType, IOException, NotInterfaceType, IllegalAccessException, InstantiationException {
+    public void testWriteByteParamAndReturnIntNoParams() throws NotContractInterfaceType, IOException, NotInterfaceType, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
         testImcMethod(IContractOverloading.class, 4, 3, (Object[]) null);
     }
 

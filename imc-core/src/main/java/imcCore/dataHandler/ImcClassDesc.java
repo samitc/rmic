@@ -7,8 +7,10 @@ import lombok.val;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.lang.ref.SoftReference;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
 import java.util.*;
 
@@ -18,7 +20,7 @@ class ImcClassDesc {
     private final ITypeContract<?>[] types;
     private final int[] pos;
     private final ImcClassDesc[] customType;
-    private static final Map<Class<?>, ImcClassDesc> cache;
+    private static final Map<Class<?>, SoftReference<ImcClassDesc>> cache;
     private static final ImcClassDesc EMPTY_CUSTOM_TYPE;
     private static final ITypeContract<?> EMPTY_TYPE;
 
@@ -28,7 +30,11 @@ class ImcClassDesc {
         EMPTY_TYPE = null;
     }
 
-    public ImcClassDesc(Class<?> imcClassData) {
+    static ImcClassDesc getImcClassDesc(Class<?> imcClassData) {
+        return cache.computeIfAbsent(imcClassData, imcClassData1 -> new SoftReference<>(new ImcClassDesc(imcClassData1))).get();
+    }
+
+    private ImcClassDesc(Class<?> imcClassData) {
         classData = imcClassData;
         List<ITypeContract<?>> cTypes = new ArrayList<>();
         List<Integer> cPos = new ArrayList<>();
@@ -39,7 +45,6 @@ class ImcClassDesc {
         pos = new int[size];
         customType = new ImcClassDesc[size];
         sortData(cTypes, cPos, cCustomType);
-        cache.put(imcClassData, this);
     }
 
     private <T> void swap(List<T> src, List<T> dst, int srcPos, int dstPos) {
@@ -77,17 +82,9 @@ class ImcClassDesc {
         } else {
             Class<?> superClass = fieldClass.getSuperclass();
             if (superClass != null) {
-                ImcClassDesc superData = cache.get(superClass);
-                if (superData == null) {
-                    superData = new ImcClassDesc(superClass);
-                    cache.put(superClass, superData);
-                }
+                getImcClassDesc(fieldClass.getSuperclass());
             }
-            ImcClassDesc classData = cache.get(fieldClass);
-            if (classData == null) {
-                classData = new ImcClassDesc(fieldClass);
-                cache.put(fieldClass, classData);
-            }
+            ImcClassDesc classData = getImcClassDesc(fieldClass);
             cTypes.add(EMPTY_TYPE);
             cPos.add(field.getOffset());
             cCustomType.add(classData);
@@ -112,61 +109,80 @@ class ImcClassDesc {
                 typeContract.writeO(output, Array.get(arr, i));
             }
         } else {
+            ImcClassDesc desc = getImcClassDesc(componentType);
             Object[] arrObj = (Object[]) arr;
             output.writeInt(arrObj.length);
             for (Object arobj :
                     arrObj) {
-                writeBytes(arobj, output);
+                desc.writeBytes(arobj, output);
             }
         }
     }
 
     void writeBytes(Object obj, DataOutput output) throws IOException {
-        int size = pos.length;
-        for (int i = 0; i < size; i++) {
-            if (types[i] != EMPTY_TYPE) {
-                types[i].writeToStream(obj, pos[i], output);
-            } else {
-                Object nObj = FieldHandler.getObject(obj, pos[i]);
-                if (customType[i].getClassData().isArray()) {
-                    writeArray(nObj, output, customType[i].getClassData().getComponentType());
+        if (classData.isArray()) {
+            writeArray(obj, output, classData.getComponentType());
+        } else {
+            int size = pos.length;
+            for (int i = 0; i < size; i++) {
+                if (types[i] != EMPTY_TYPE) {
+                    types[i].writeToStream(obj, pos[i], output);
                 } else {
-                    customType[i].writeBytes(nObj, output);
+                    Object nObj = FieldHandler.getObject(obj, pos[i]);
+                    if (customType[i].getClassData().isArray()) {
+                        writeArray(nObj, output, customType[i].getClassData().getComponentType());
+                    } else {
+                        customType[i].writeBytes(nObj, output);
+                    }
                 }
             }
         }
     }
-    private Object readArray(DataInput input,Class<?> componentType) throws IOException, InstantiationException, IllegalAccessException {
-        int l=input.readInt();
+
+    private Object readArray(DataInput input, Class<?> componentType) throws IOException, InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+        int l = input.readInt();
         Object obj = Array.newInstance(componentType, l);
         if (componentType.isPrimitive()) {
             val typeContract = FieldHandler.getTypeContract(componentType);
             for (int j = 0; j < l; j++) {
-                Array.set(obj,j,typeContract.read(input));
+                Array.set(obj, j, typeContract.read(input));
             }
         } else {
-            Object[] arrObj= (Object[]) obj;
+            ImcClassDesc desc = getImcClassDesc(componentType);
+            Object[] arrObj = (Object[]) obj;
             for (int i = 0; i < l; i++) {
-                arrObj[i]=readBytes(input);
+                arrObj[i] = desc.readBytes(input);
             }
         }
         return obj;
     }
 
-    public Object readBytes(DataInput input) throws IllegalAccessException, InstantiationException, IOException {
+    public Object readBytes(DataInput input) throws IllegalAccessException, InstantiationException, IOException, NoSuchMethodException, InvocationTargetException {
+        if (classData.isArray()) {
+            return readArrayBytes(input);
+        } else {
+            return readClassBytes(input);
+        }
+    }
+
+    private Object readArrayBytes(DataInput input) throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, IOException {
+        return readArray(input, classData.getComponentType());
+    }
+
+    private Object readClassBytes(DataInput input) throws NoSuchMethodException, IOException, IllegalAccessException, InvocationTargetException, InstantiationException {
         int size = pos.length;
-        Object obj = classData.newInstance();
+        Object obj = classData.getDeclaredConstructor().newInstance();
         for (int i = 0; i < size; i++) {
             if (types[i] != EMPTY_TYPE) {
                 types[i].readFromStream(obj, pos[i], input);
             } else {
                 Object puttingObject;
                 if (customType[i].getClassData().isArray()) {
-                    puttingObject=readArray(input,customType[i].getClassData().getComponentType());
+                    puttingObject = readArray(input, customType[i].getClassData().getComponentType());
                 } else {
-                    puttingObject=customType[i].readBytes(input);
+                    puttingObject = customType[i].readBytes(input);
                 }
-                FieldHandler.putObject(obj,pos[i],puttingObject);
+                FieldHandler.putObject(obj, pos[i], puttingObject);
             }
         }
         return obj;

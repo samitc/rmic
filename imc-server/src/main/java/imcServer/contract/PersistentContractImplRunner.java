@@ -97,7 +97,7 @@ class PersistentContractImplRunner<T> extends ContractImplRunners<T> {
                 } else {
                     waitForInvoke(asynchronousSocketChannel);
                 }
-            } catch (IllegalAccessException | IOException | InstantiationException | InvocationTargetException e) {
+            } catch (IllegalAccessException | IOException | InstantiationException | InvocationTargetException | NoSuchMethodException e) {
                 //TODO print to log
                 e.printStackTrace();
                 waitForInvoke(asynchronousSocketChannel);

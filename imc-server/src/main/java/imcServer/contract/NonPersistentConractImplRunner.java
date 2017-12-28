@@ -55,7 +55,7 @@ class NonPersistentConractImplRunner<T> extends ContractImplRunners<T> implement
                         writeInvokeBuf(cOutput, rBuf);
                     }
                 }
-            } catch (IOException | IllegalAccessException | InstantiationException | InvocationTargetException | IllegalArgumentException e) {
+            } catch (IOException | IllegalAccessException | InstantiationException | InvocationTargetException | IllegalArgumentException | NoSuchMethodException e) {
                 //TODO print to log
                 e.printStackTrace();
             } finally {

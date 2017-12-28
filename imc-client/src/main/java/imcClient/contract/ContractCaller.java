@@ -10,6 +10,7 @@ import lombok.val;
 
 import java.io.*;
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.net.InetSocketAddress;
@@ -129,7 +130,7 @@ public abstract class ContractCaller implements InvocationHandler {
                 if (imcMethod.isSendResult()) {
                     return receivedMethodData(input, imcMethod).getRetObj();
                 }
-            } catch (IOException | InstantiationException | IllegalAccessException e) {
+            } catch (IOException | InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
                 //TODO print to log
                 e.printStackTrace();
             }
@@ -144,7 +145,7 @@ public abstract class ContractCaller implements InvocationHandler {
 
     abstract void finishMethodHandle();
 
-    private MethodPocket receivedMethodData(DataInputStream input, ImcMethod imcMethod) throws IOException, InstantiationException, IllegalAccessException {
+    private MethodPocket receivedMethodData(DataInputStream input, ImcMethod imcMethod) throws IOException, InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
         int bufSize = input.readInt();
         byte[] rBuf = new byte[bufSize];
         IoUtils.read(input, rBuf, bufSize);

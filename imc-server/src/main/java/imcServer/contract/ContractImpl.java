@@ -1,5 +1,7 @@
 package imcServer.contract;
 
+import imcCore.contract.Exceptions.NotContractInterfaceType;
+import imcCore.contract.Exceptions.NotInterfaceType;
 import imcCore.contract.ImcClass;
 import imcServer.contract.Exception.ImplNotMaintainInterface;
 import lombok.AccessLevel;
@@ -23,13 +25,13 @@ public class ContractImpl<T> {
     private final ImcClass imcClass;
     private final List<ContractImplRunners<T>> contractImplRunners;
 
-    public ContractImpl(T impl, ImcClass imcClass) throws ImplNotMaintainInterface {
+    public ContractImpl(T impl, Class<?> classType) throws ImplNotMaintainInterface, NotContractInterfaceType, NotInterfaceType {
+        imcClass=new ImcClass(classType);
         boolean isTImplImc = imcClass.getImcClass().isAssignableFrom(impl.getClass());
         if (!isTImplImc) {
             throw new ImplNotMaintainInterface(impl.getClass(), imcClass.getImcClass());
         }
         this.impl = impl;
-        this.imcClass = imcClass;
         contractImplRunners = new ArrayList<>();
     }
 

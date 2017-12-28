@@ -90,6 +90,8 @@ public class ImcClassTest {
                 addMethod("f3", String.class).
                 addMethod("f4", boolean.class).
                 addMethod("f4", int.class).
+                addMethod("f5").
+                addMethod("f6").
                 build());
     }
 

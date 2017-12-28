@@ -16,6 +16,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 
@@ -58,7 +59,7 @@ public class ContractImplRunnersNonPerTest {
         client.close();
     }
 
-    private MethodPocket sendRunner(MethodPocket send, int methodIndex) throws IllegalAccessException, IOException, InstantiationException {
+    private MethodPocket sendRunner(MethodPocket send, int methodIndex) throws IllegalAccessException, IOException, InstantiationException, NoSuchMethodException, InvocationTargetException {
         serverDataFirstConnect();
         val client = new Socket();
         client.connect(new InetSocketAddress("localhost", PORT));
@@ -154,7 +155,7 @@ public class ContractImplRunnersNonPerTest {
     }
 
     @Test
-    public void testEmptyMethod() throws IOException, InstantiationException, IllegalAccessException {
+    public void testEmptyMethod() throws IOException, InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
         MethodPocket retData = sendRunner(new MethodPocket(null, null), 0);
         Assert.assertNotNull(retData);
         Assert.assertEquals(null, retData.getRetObj());
@@ -162,7 +163,7 @@ public class ContractImplRunnersNonPerTest {
     }
 
     @Test
-    public void testReturnParam() throws IllegalAccessException, IOException, InstantiationException {
+    public void testReturnParam() throws IllegalAccessException, IOException, InstantiationException, NoSuchMethodException, InvocationTargetException {
         MethodPocket retData = sendRunner(MethodPocket.builder().addParam(6).build(), 4);
         Assert.assertNotNull(retData);
         Assert.assertEquals(6, retData.getRetObj());
@@ -170,14 +171,14 @@ public class ContractImplRunnersNonPerTest {
     }
 
     @Test
-    public void testNotReturnData() throws IllegalAccessException, IOException, InstantiationException {
+    public void testNotReturnData() throws IllegalAccessException, IOException, InstantiationException, NoSuchMethodException, InvocationTargetException {
         MethodPocket retData = sendRunner(new MethodPocket(null, null), 3);
         Assert.assertNull(retData);
         Assert.assertEquals(1, impl.f3I);
     }
 
     @Test
-    public void testNotReturnDataM() throws IllegalAccessException, IOException, InstantiationException {
+    public void testNotReturnDataM() throws IllegalAccessException, IOException, InstantiationException, NoSuchMethodException, InvocationTargetException {
         MethodPocket retData = sendRunner(new MethodPocket(null, null), 3);
         Assert.assertNull(retData);
         Assert.assertEquals(1, impl.f3I);
@@ -191,7 +192,7 @@ public class ContractImplRunnersNonPerTest {
     }
 
     @Test
-    public void testManyReq() throws IllegalAccessException, IOException, InstantiationException {
+    public void testManyReq() throws IllegalAccessException, IOException, InstantiationException, NoSuchMethodException, InvocationTargetException {
         MethodPocket retData;
         MethodPocket paramData = new MethodPocket(null, null);
         MethodPocket secFunctionParamData = MethodPocket.builder().addParam(6).build();

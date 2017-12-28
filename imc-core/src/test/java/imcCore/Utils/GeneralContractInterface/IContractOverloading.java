@@ -29,5 +29,11 @@ public interface IContractOverloading {
     @ContractMethod(sendResult = true)
     void f2(int a);
 
+    @ContractMethod
+    String[] f5();
+
+    @ContractMethod
+    int[] f6();
+
     int f4();
 }

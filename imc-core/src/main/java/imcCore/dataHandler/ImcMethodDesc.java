@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.val;
 
 import java.io.*;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 
@@ -17,9 +18,9 @@ public class ImcMethodDesc {
 
     private ImcMethodDesc(ImcMethod imcMethod, int methodCode, Method method) {
         this.methodCode = methodCode;
-        retData = imcMethod.isSendResult() ? new ImcClassDesc(method.getReturnType()) : null;
+        retData = imcMethod.isSendResult() ?ImcClassDesc.getImcClassDesc(method.getReturnType()) : null;
         Class<?>[] parameters = method.getParameterTypes();
-        params = parameters.length == 0 ? null : Arrays.stream(parameters).map(ImcClassDesc::new).toArray(ImcClassDesc[]::new);
+        params = parameters.length == 0 ? null : Arrays.stream(parameters).map(ImcClassDesc::getImcClassDesc).toArray(ImcClassDesc[]::new);
     }
 
     private ImcMethodDesc(ImcClass imcClass, int methodCode, Method method) {
@@ -51,7 +52,7 @@ public class ImcMethodDesc {
         }
     }
 
-    private Object readObject(DataInput input, ImcClassDesc classDesc) throws IOException, InstantiationException, IllegalAccessException {
+    private Object readObject(DataInput input, ImcClassDesc classDesc) throws IOException, InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
         if (classDesc.getClassData().isPrimitive()) {
             return FieldHandler.getTypeContract(classDesc.getClassData()).read(input);
         } else {
@@ -75,7 +76,7 @@ public class ImcMethodDesc {
         return buf.toByteArray();
     }
 
-    public MethodPocket fromBytes(byte[] bytes) throws IOException, IllegalAccessException, InstantiationException {
+    public MethodPocket fromBytes(byte[] bytes) throws IOException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
         val dataInput = new DataInputStream(new ByteArrayInputStream(bytes));
         val methodPocket = MethodPocket.builder();
         int methodCode = dataInput.readInt();

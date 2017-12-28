@@ -130,14 +130,6 @@ class FieldHandler {
         unsafe.putObject(var1, var2, o);
     }
 
-    public static int getType(Class<?> type) {
-        ITypeContract<?> handler = handlers.get(type);
-        if (handler == null) {
-            return -1;
-        }
-        return handler.getType();
-    }
-
     public static ITypeContract<?> getTypeContract(Class<?> type) {
         return handlers.get(type);
     }

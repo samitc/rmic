@@ -13,6 +13,8 @@ import org.junit.Test;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Array;
+import java.lang.reflect.InvocationTargetException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -74,7 +76,7 @@ public class ContractCallerTest {
                     output.close();
                     client.close();
                 }
-            } catch (IOException | IllegalAccessException | InstantiationException | NullPointerException | InterruptedException e) {
+            } catch (IOException | IllegalAccessException | InstantiationException | NullPointerException | InterruptedException | NoSuchMethodException | InvocationTargetException e) {
                 e.printStackTrace();
             }
         });
@@ -82,7 +84,7 @@ public class ContractCallerTest {
     }
 
     @AfterClass
-    public static void closeServer() throws InterruptedException {
+    public static void closeServer() {
         try {
             serverSocket.close();
         } catch (IOException e) {
@@ -106,7 +108,23 @@ public class ContractCallerTest {
     private static void testStaticVars(int methodI, Object retObj, Object... params) {
         while (!finishPutRes) ;
         Assert.assertEquals(methodI, methodIndex);
-        Assert.assertEquals(retObj, methodPocket.getRetObj());
+        if (retObj == null) {
+            Assert.assertNull(methodPocket.getRetObj());
+        } else {
+            if (retObj.getClass().isArray()) {
+                if (retObj.getClass().getComponentType().isPrimitive()) {
+                    int size = Array.getLength(retObj);
+                    Assert.assertEquals(size, Array.getLength(methodPocket.getRetObj()));
+                    for (int i = 0; i < size; i++) {
+                        Assert.assertEquals(Array.get(retObj, i), Array.get(methodPocket.getRetObj(), i));
+                    }
+                } else {
+                    Assert.assertArrayEquals((Object[]) retObj, (Object[]) methodPocket.getRetObj());
+                }
+            } else {
+                Assert.assertEquals(retObj, methodPocket.getRetObj());
+            }
+        }
         if (params == null) {
             Assert.assertEquals(0, methodPocket.getParamsObject().size());
         } else {
@@ -128,6 +146,22 @@ public class ContractCallerTest {
         IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
         contractOverloading.f3(6);
         testStaticVars(4, 6, 6);
+    }
+
+    @Test
+    public void testStringArrayReturn() throws NotContractInterfaceType, NotInterfaceType, IOException {
+        initStaticVars(8, 0, false, new String[]{"a", "b", "c", "d"});
+        IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
+        contractOverloading.f5();
+        testStaticVars(8, new String[]{"a", "b", "c", "d"});
+    }
+
+    @Test
+    public void testIntArrayReturn() throws NotContractInterfaceType, NotInterfaceType, IOException {
+        initStaticVars(9, 0, false, new int[]{1, 2, 3, 4, 9});
+        IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
+        contractOverloading.f6();
+        testStaticVars(9, new int[]{1, 2, 3, 4, 9});
     }
 
     @Test
@@ -167,6 +201,22 @@ public class ContractCallerTest {
         IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
         contractOverloading.f3(6);
         testStaticVars(4, 6, 6);
+    }
+
+    @Test
+    public void testStringArrayReturnP() throws NotContractInterfaceType, NotInterfaceType, IOException {
+        initStaticVars(8, 0, true, new String[]{"a", "b", "c", "d"});
+        IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
+        contractOverloading.f5();
+        testStaticVars(8, new String[]{"a", "b", "c", "d"});
+    }
+
+    @Test
+    public void testIntArrayReturnP() throws NotContractInterfaceType, NotInterfaceType, IOException {
+        initStaticVars(9, 0, true, new int[]{1, 2, 3, 4, 9});
+        IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
+        contractOverloading.f6();
+        testStaticVars(9, new int[]{1, 2, 3, 4, 9});
     }
 
     @Test

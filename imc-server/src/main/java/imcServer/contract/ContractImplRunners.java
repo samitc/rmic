@@ -35,7 +35,7 @@ abstract class ContractImplRunners<T> {
         return buf;
     }
 
-    byte[] invokeMethod(byte[] buf) throws IllegalAccessException, IOException, InstantiationException, InvocationTargetException {
+    byte[] invokeMethod(byte[] buf) throws IllegalAccessException, IOException, InstantiationException, InvocationTargetException, NoSuchMethodException {
         ImcMethod imcMethod = getImcMethod(buf);
         MethodPocket receivedData = imcMethod.read(buf);
         MethodPocket sentData = invokeContract(imcMethod, receivedData);
