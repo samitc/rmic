@@ -18,7 +18,7 @@ public class ImcMethodDesc {
 
     private ImcMethodDesc(ImcMethod imcMethod, int methodCode, Method method) {
         this.methodCode = methodCode;
-        retData = imcMethod.isSendResult() ?ImcClassDesc.getImcClassDesc(method.getReturnType()) : null;
+        retData = imcMethod.isSendResult() ? ImcClassDesc.getImcClassDesc(method.getReturnType()) : null;
         Class<?>[] parameters = method.getParameterTypes();
         params = parameters.length == 0 ? null : Arrays.stream(parameters).map(ImcClassDesc::getImcClassDesc).toArray(ImcClassDesc[]::new);
     }
@@ -48,7 +48,7 @@ public class ImcMethodDesc {
         if (classDesc.getClassData().isPrimitive()) {
             FieldHandler.getTypeContract(classDesc.getClassData()).writeO(output, obj);
         } else {
-            classDesc.writeBytes(obj, output);
+            ImcClassDesc.writeClassDesc(output, classDesc, obj).writeBytes(obj, output);
         }
     }
 
@@ -56,7 +56,7 @@ public class ImcMethodDesc {
         if (classDesc.getClassData().isPrimitive()) {
             return FieldHandler.getTypeContract(classDesc.getClassData()).read(input);
         } else {
-            return classDesc.readBytes(input);
+            return ImcClassDesc.readClassDesc(input,classDesc).readBytes(input);
         }
     }
 

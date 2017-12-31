@@ -1,14 +1,12 @@
 package imcClient.contract;
 
-import imcCore.contract.Exceptions.NotContractInterfaceType;
-import imcCore.contract.Exceptions.NotInterfaceType;
 import imcCore.contract.ImcClass;
 
 import java.io.IOException;
 import java.net.Socket;
 
 class NonPersistentContractCaller extends ContractCaller {
-    NonPersistentContractCaller(String hostName, int port, ImcClass interfaceType, Socket client, int version) throws NotContractInterfaceType, NotInterfaceType, IOException {
+    NonPersistentContractCaller(String hostName, int port, ImcClass interfaceType, Socket client, int version) throws IOException {
         super(hostName, port, interfaceType, client, version);
         close();
     }
@@ -21,7 +19,7 @@ class NonPersistentContractCaller extends ContractCaller {
     @Override
     void handleConnectDescription() throws IOException {
         funcConnect();
-        readFlags(input);
+        readFlags(getInputStream());
         matchImcClassDesc();
     }
 }

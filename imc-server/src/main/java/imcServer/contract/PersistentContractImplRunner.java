@@ -36,12 +36,7 @@ class PersistentContractImplRunner<T> extends ContractImplRunners<T> {
                     if (asynchronousServerSocketChannel.isOpen()) {
                         asynchronousServerSocketChannel.accept(null, this);
                     }
-                    try {
-                        handleNewClient(asyncSocketChannel);
-                    } catch (IOException e) {
-                        //TODO print to log
-                        e.printStackTrace();
-                    }
+                    handleNewClient(asyncSocketChannel);
                 }
 
                 @Override
@@ -60,7 +55,7 @@ class PersistentContractImplRunner<T> extends ContractImplRunners<T> {
         return asynchronousServerSocketChannel.isOpen();
     }
 
-    private void handleNewClient(AsynchronousSocketChannel asynchronousSocketChannel) throws IOException {
+    private void handleNewClient(AsynchronousSocketChannel asynchronousSocketChannel) {
         connectClient(asynchronousSocketChannel);
     }
 

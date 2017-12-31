@@ -34,6 +34,41 @@ class ImcClassDesc {
         return cache.computeIfAbsent(imcClassData, imcClassData1 -> new SoftReference<>(new ImcClassDesc(imcClassData1))).get();
     }
 
+    static ImcClassDesc writeClassDesc(DataOutput output, ImcClassDesc desc, Object object) throws IOException {
+        Class<?> retClass = object.getClass();
+        if (desc.getClassData() == retClass) {
+            output.writeBoolean(false);
+            return desc;
+        } else {
+            output.writeBoolean(true);
+            String name = retClass.getName();
+            byte[] data = name.getBytes("UTF-8");
+            output.writeInt(data.length);
+            output.write(data);
+            return ImcClassDesc.getImcClassDesc(retClass);
+        }
+    }
+
+    static ImcClassDesc readClassDesc(DataInput input, ImcClassDesc desc) throws IOException {
+        boolean isDifferentClass = input.readBoolean();
+        if (!isDifferentClass) {
+            return desc;
+        } else {
+            int dataL = input.readInt();
+            byte[] data = new byte[dataL];
+            input.readFully(data);
+            String name = new String(data, "UTF-8");
+            Class<?> retClass = null;
+            try {
+                retClass = Class.forName(name);
+            } catch (ClassNotFoundException e) {
+                //TODO: write to log
+                e.printStackTrace();
+            }
+            return ImcClassDesc.getImcClassDesc(retClass);
+        }
+    }
+
     private ImcClassDesc(Class<?> imcClassData) {
         classData = imcClassData;
         List<ITypeContract<?>> cTypes = new ArrayList<>();
@@ -109,30 +144,37 @@ class ImcClassDesc {
                 typeContract.writeO(output, Array.get(arr, i));
             }
         } else {
-            ImcClassDesc desc = getImcClassDesc(componentType);
             Object[] arrObj = (Object[]) arr;
             output.writeInt(arrObj.length);
-            for (Object arobj :
-                    arrObj) {
-                desc.writeBytes(arobj, output);
+            if (arrObj.length > 0) {
+                ImcClassDesc desc = writeClassDesc(output, getImcClassDesc(componentType), arrObj[0]);
+                for (Object arobj :
+                        arrObj) {
+                    desc.writeBytes(arobj, output);
+                }
             }
         }
     }
 
     void writeBytes(Object obj, DataOutput output) throws IOException {
-        if (classData.isArray()) {
-            writeArray(obj, output, classData.getComponentType());
+        if (obj == null) {
+            output.writeBoolean(true);
         } else {
-            int size = pos.length;
-            for (int i = 0; i < size; i++) {
-                if (types[i] != EMPTY_TYPE) {
-                    types[i].writeToStream(obj, pos[i], output);
-                } else {
-                    Object nObj = FieldHandler.getObject(obj, pos[i]);
-                    if (customType[i].getClassData().isArray()) {
-                        writeArray(nObj, output, customType[i].getClassData().getComponentType());
+            output.writeBoolean(false);
+            if (classData.isArray()) {
+                writeArray(obj, output, classData.getComponentType());
+            } else {
+                int size = pos.length;
+                for (int i = 0; i < size; i++) {
+                    if (types[i] != EMPTY_TYPE) {
+                        types[i].writeToStream(obj, pos[i], output);
                     } else {
-                        customType[i].writeBytes(nObj, output);
+                        Object nObj = FieldHandler.getObject(obj, pos[i]);
+                        if (customType[i].getClassData().isArray()) {
+                            writeArray(nObj, output, customType[i].getClassData().getComponentType());
+                        } else {
+                            customType[i].writeBytes(nObj, output);
+                        }
                     }
                 }
             }
@@ -148,7 +190,7 @@ class ImcClassDesc {
                 Array.set(obj, j, typeContract.read(input));
             }
         } else {
-            ImcClassDesc desc = getImcClassDesc(componentType);
+            ImcClassDesc desc = readClassDesc(input, getImcClassDesc(componentType));
             Object[] arrObj = (Object[]) obj;
             for (int i = 0; i < l; i++) {
                 arrObj[i] = desc.readBytes(input);
@@ -158,10 +200,15 @@ class ImcClassDesc {
     }
 
     public Object readBytes(DataInput input) throws IllegalAccessException, InstantiationException, IOException, NoSuchMethodException, InvocationTargetException {
-        if (classData.isArray()) {
-            return readArrayBytes(input);
+        boolean isNull = input.readBoolean();
+        if (isNull) {
+            return null;
         } else {
-            return readClassBytes(input);
+            if (classData.isArray()) {
+                return readArrayBytes(input);
+            } else {
+                return readClassBytes(input);
+            }
         }
     }
 
@@ -171,7 +218,7 @@ class ImcClassDesc {
 
     private Object readClassBytes(DataInput input) throws NoSuchMethodException, IOException, IllegalAccessException, InvocationTargetException, InstantiationException {
         int size = pos.length;
-        Object obj = classData.getDeclaredConstructor().newInstance();
+        Object obj = FieldHandler.createInstance(classData);
         for (int i = 0; i < size; i++) {
             if (types[i] != EMPTY_TYPE) {
                 types[i].readFromStream(obj, pos[i], input);

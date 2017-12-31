@@ -12,7 +12,7 @@ abstract class ContractImplRunners<T> {
     private final ImcClass imcClass;
     static final int INT_SIZE = 4;
 
-    ContractImplRunners(T impl, ImcClass imcClass, int port) throws IOException {
+    ContractImplRunners(T impl, ImcClass imcClass, int port) {
         this.impl = impl;
         this.imcClass = imcClass;
     }

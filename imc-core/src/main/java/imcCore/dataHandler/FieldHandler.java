@@ -133,4 +133,8 @@ class FieldHandler {
     public static ITypeContract<?> getTypeContract(Class<?> type) {
         return handlers.get(type);
     }
+
+    static Object createInstance(Class<?> classData) throws InstantiationException {
+        return unsafe.allocateInstance(classData);
+    }
 }

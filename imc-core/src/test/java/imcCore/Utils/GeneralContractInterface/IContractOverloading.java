@@ -3,6 +3,8 @@ package imcCore.Utils.GeneralContractInterface;
 import imcCore.contract.annotations.ContractInterface;
 import imcCore.contract.annotations.ContractMethod;
 
+import java.util.List;
+
 @ContractInterface
 public interface IContractOverloading {
     @ContractMethod
@@ -34,6 +36,12 @@ public interface IContractOverloading {
 
     @ContractMethod
     int[] f6();
+
+    @ContractMethod
+    List<String> f7(List<Integer> l);
+
+    @ContractMethod
+    Object f8(List<Integer> nums,List<String> strs,float[] flts,boolean b);
 
     int f4();
 }

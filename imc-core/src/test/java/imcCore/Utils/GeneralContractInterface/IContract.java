@@ -5,6 +5,9 @@ import imcCore.contract.annotations.ContractMethod;
 
 @ContractInterface
 public interface IContract {
+    @ContractMethod
+    int f(String str);
+
     @ContractMethod(sendResult = false)
     int f3();
 

@@ -66,7 +66,7 @@ public class ImcClassTest {
     }
 
     @Test
-    public void classRecognitionAnnotationTest() throws NotContractInterfaceType, NotInterfaceType, NoSuchMethodException {
+    public void classRecognitionAnnotationTest() throws NotContractInterfaceType, NotInterfaceType {
         testImcClassClass(FunctionImcClassHelper.builder(IContract.class).build());
         testImcClassClass(FunctionImcClassHelper.builder(IEmptyContract.class).build());
     }
@@ -74,6 +74,7 @@ public class ImcClassTest {
     @Test
     public void methodRecognitionAnnotationTest() throws NotContractInterfaceType, NotInterfaceType, NoSuchMethodException {
         testImcClass(FunctionImcClassHelper.builder(IContract.class).
+                addMethod("f", String.class).
                 addMethod("f1").
                 addMethod("f2", int.class).
                 addMethod("f3").build());
@@ -92,6 +93,8 @@ public class ImcClassTest {
                 addMethod("f4", int.class).
                 addMethod("f5").
                 addMethod("f6").
+                addMethod("f7", List.class).
+                addMethod("f8", List.class, List.class, float[].class, boolean.class).
                 build());
     }
 

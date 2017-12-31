@@ -22,7 +22,7 @@ class ImcMethod {
     @Setter(AccessLevel.PRIVATE)
     private ImcMethodDesc imcMethodDesc;
 
-    public ImcMethod(Method method, ContractMethod methodContract) {
+    ImcMethod(Method method, ContractMethod methodContract) {
         this.method = method;
         this.methodContract = methodContract;
         setMethodIndex(-1);

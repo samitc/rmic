@@ -36,25 +36,27 @@ public abstract class ContractCaller implements InvocationHandler {
         primitiveMap.put(double.class, 0);
     }
 
-    final String hostName;
-    final int port;
-    final ImcClass imcClass;
-    final Map<Method, ImcMethod> methodsMap;
-    final int version;
-    Socket client;
-    DataInputStream input;
-    DataOutputStream output;
+    private final String hostName;
+    private final int port;
+    private final ImcClass imcClass;
+    private final Map<Method, ImcMethod> methodsMap;
+    private final int version;
+    private Socket client;
+    private DataInputStream input;
+    private DataOutputStream output;
 
-    ContractCaller(String hostName, int port, ImcClass interfaceType, Socket client, int version) throws NotContractInterfaceType, NotInterfaceType {
+    ContractCaller(String hostName, int port, ImcClass interfaceType, Socket client, int version) throws IOException {
         this.hostName = hostName;
         this.port = port;
         this.client = client;
         this.version = version;
         imcClass = interfaceType;
         methodsMap = new HashMap<>();
+        input = new DataInputStream(client.getInputStream());
+        output = new DataOutputStream(client.getOutputStream());
     }
 
-    private static ContractCaller createContractCaller(String hostName, int port, ImcClass interfaceType) throws IOException, NotContractInterfaceType, NotInterfaceType {
+    private static ContractCaller createContractCaller(String hostName, int port, ImcClass interfaceType) throws IOException {
         Socket client = new Socket();
         client.connect(new InetSocketAddress(hostName, port));
         DataInputStream input = new DataInputStream(client.getInputStream());
@@ -95,16 +97,11 @@ public abstract class ContractCaller implements InvocationHandler {
     }
 
     @Override
-    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-        ImcMethod imcMethod = methodsMap.get(method);
-        if (imcMethod == null) {
-            imcMethod = imcClass.getImcMethod(imcClass.getMethodIndex(method));
-            methodsMap.put(method, imcMethod);
-        }
-        return invoke(proxy, imcMethod, args);
+    public Object invoke(Object proxy, Method method, Object[] args) {
+        return invoke(methodsMap.computeIfAbsent(method, m -> imcClass.getImcMethod(imcClass.getMethodIndex(m))), args);
     }
 
-    final int readFlags(DataInputStream input) throws IOException {
+    final int readFlags(InputStream input) throws IOException {
         return input.read();
     }
 
@@ -122,7 +119,7 @@ public abstract class ContractCaller implements InvocationHandler {
         output.write(sBuf);
     }
 
-    private Object invoke(Object proxy, ImcMethod imcMethod, Object[] args) {
+    private Object invoke(ImcMethod imcMethod, Object[] args) {
         try {
             handleConnectDescription();
             try {
@@ -153,7 +150,7 @@ public abstract class ContractCaller implements InvocationHandler {
     }
 
     @Override
-    protected void finalize() throws Throwable {
+    protected void finalize() {
         close();
     }
 
@@ -172,5 +169,9 @@ public abstract class ContractCaller implements InvocationHandler {
             //TODO print to log
             e.printStackTrace();
         }
+    }
+
+    InputStream getInputStream() {
+        return input;
     }
 }

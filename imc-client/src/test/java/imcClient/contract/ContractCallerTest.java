@@ -1,6 +1,7 @@
 package imcClient.contract;
 
 import imcCore.Utils.GeneralContractInterface.IContractOverloading;
+import imcCore.Utils.GeneralTestUtils;
 import imcCore.contract.Exceptions.NotContractInterfaceType;
 import imcCore.contract.Exceptions.NotInterfaceType;
 import imcCore.contract.ImcClass;
@@ -13,7 +14,6 @@ import org.junit.Test;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -99,8 +99,7 @@ public class ContractCallerTest {
         retMethodPocket = new MethodPocket(retObj, null);
         List<Object> paramsL = null;
         if (params != null) {
-            paramsL = new ArrayList<>();
-            paramsL.addAll(Arrays.asList(params));
+            paramsL = new ArrayList<>(Arrays.asList(params));
         }
         methodPocket = new MethodPocket(null, paramsL);
     }
@@ -108,130 +107,105 @@ public class ContractCallerTest {
     private static void testStaticVars(int methodI, Object retObj, Object... params) {
         while (!finishPutRes) ;
         Assert.assertEquals(methodI, methodIndex);
-        if (retObj == null) {
-            Assert.assertNull(methodPocket.getRetObj());
-        } else {
-            if (retObj.getClass().isArray()) {
-                if (retObj.getClass().getComponentType().isPrimitive()) {
-                    int size = Array.getLength(retObj);
-                    Assert.assertEquals(size, Array.getLength(methodPocket.getRetObj()));
-                    for (int i = 0; i < size; i++) {
-                        Assert.assertEquals(Array.get(retObj, i), Array.get(methodPocket.getRetObj(), i));
-                    }
-                } else {
-                    Assert.assertArrayEquals((Object[]) retObj, (Object[]) methodPocket.getRetObj());
-                }
-            } else {
-                Assert.assertEquals(retObj, methodPocket.getRetObj());
-            }
-        }
+        GeneralTestUtils.assertUnknownObj(retObj, methodPocket.getRetObj());
         if (params == null) {
             Assert.assertEquals(0, methodPocket.getParamsObject().size());
         } else {
-            Assert.assertEquals(Arrays.asList(params), methodPocket.getParamsObject());
+            for (int i = 0; i < params.length; i++) {
+                GeneralTestUtils.assertUnknownObj(params[i], methodPocket.getParamsObject().get(i));
+            }
         }
+    }
+
+    private void testEmptyMethodG(boolean isPer) throws NotContractInterfaceType, NotInterfaceType, IOException {
+        initStaticVars(0, 0, isPer, null, (Object[]) null);
+        IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
+        contractOverloading.f1();
+        testStaticVars(0, null, (Object[]) null);
     }
 
     @Test
     public void testEmptyMethod() throws NotContractInterfaceType, NotInterfaceType, IOException {
-        initStaticVars(0, 0, false, null, (Object[]) null);
-        IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
-        contractOverloading.f1();
-        testStaticVars(0, null, (Object[]) null);
-    }
-
-    @Test
-    public void testReturnParam() throws NotContractInterfaceType, NotInterfaceType, IOException {
-        initStaticVars(4, 0, false, 6, 6);
-        IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
-        contractOverloading.f3(6);
-        testStaticVars(4, 6, 6);
-    }
-
-    @Test
-    public void testStringArrayReturn() throws NotContractInterfaceType, NotInterfaceType, IOException {
-        initStaticVars(8, 0, false, new String[]{"a", "b", "c", "d"});
-        IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
-        contractOverloading.f5();
-        testStaticVars(8, new String[]{"a", "b", "c", "d"});
-    }
-
-    @Test
-    public void testIntArrayReturn() throws NotContractInterfaceType, NotInterfaceType, IOException {
-        initStaticVars(9, 0, false, new int[]{1, 2, 3, 4, 9});
-        IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
-        contractOverloading.f6();
-        testStaticVars(9, new int[]{1, 2, 3, 4, 9});
-    }
-
-    @Test
-    public void testNotReturnData() throws NotContractInterfaceType, NotInterfaceType, IOException {
-        initStaticVars(3, 0, false, 6, (Object[]) null);
-        IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
-        contractOverloading.f3();
-        testStaticVars(3, null, (Object[]) null);
-    }
-
-    @Test
-    public void testNotWaitWhenNoResult() throws NotContractInterfaceType, NotInterfaceType, IOException {
-        final int WAIT_TIME = 1000;
-        final float DELTA = 50;
-        initStaticVars(3, WAIT_TIME, false, 6, (Object[]) null);
-        IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
-        long startMili = System.currentTimeMillis();
-        contractOverloading.f3();
-        long endMili = System.currentTimeMillis();
-        Assert.assertEquals(0, endMili - startMili, DELTA);
-        testStaticVars(3, null, (Object[]) null);
-        long endServer = System.currentTimeMillis();
-        Assert.assertEquals(WAIT_TIME, endServer - startMili, DELTA);
+        testEmptyMethodG(false);
     }
 
     @Test
     public void testEmptyMethodP() throws NotContractInterfaceType, NotInterfaceType, IOException {
-        initStaticVars(0, 0, true, null, (Object[]) null);
-        IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
-        contractOverloading.f1();
-        testStaticVars(0, null, (Object[]) null);
+        testEmptyMethodG(true);
     }
 
-    @Test
-    public void testReturnParamP() throws NotContractInterfaceType, NotInterfaceType, IOException {
-        initStaticVars(4, 0, true, 6, 6);
+    private void testReturnParamG(boolean isPer) throws NotContractInterfaceType, NotInterfaceType, IOException {
+        initStaticVars(4, 0, isPer, 6, 6);
         IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
         contractOverloading.f3(6);
         testStaticVars(4, 6, 6);
     }
 
     @Test
-    public void testStringArrayReturnP() throws NotContractInterfaceType, NotInterfaceType, IOException {
-        initStaticVars(8, 0, true, new String[]{"a", "b", "c", "d"});
+    public void testReturnParam() throws NotContractInterfaceType, NotInterfaceType, IOException {
+        testReturnParamG(false);
+    }
+
+    @Test
+    public void testReturnParamP() throws NotContractInterfaceType, NotInterfaceType, IOException {
+        testReturnParamG(true);
+    }
+
+    private void testStringArrayReturnG(boolean isPers) throws NotContractInterfaceType, NotInterfaceType, IOException {
+        initStaticVars(8, 0, isPers, new String[]{"a", "b", "c", "d"});
         IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
         contractOverloading.f5();
         testStaticVars(8, new String[]{"a", "b", "c", "d"});
     }
 
     @Test
-    public void testIntArrayReturnP() throws NotContractInterfaceType, NotInterfaceType, IOException {
-        initStaticVars(9, 0, true, new int[]{1, 2, 3, 4, 9});
+    public void testStringArrayReturn() throws NotContractInterfaceType, NotInterfaceType, IOException {
+        testStringArrayReturnG(false);
+    }
+
+    @Test
+    public void testStringArrayReturnP() throws NotContractInterfaceType, NotInterfaceType, IOException {
+        testStringArrayReturnG(true);
+    }
+
+    private void testIntArrayReturnG(boolean isPers) throws NotContractInterfaceType, NotInterfaceType, IOException {
+        initStaticVars(9, 0, isPers, new int[]{1, 2, 3, 4, 9});
         IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
         contractOverloading.f6();
         testStaticVars(9, new int[]{1, 2, 3, 4, 9});
     }
 
     @Test
-    public void testNotReturnDataP() throws NotContractInterfaceType, NotInterfaceType, IOException {
-        initStaticVars(3, 0, true, 6, (Object[]) null);
+    public void testIntArrayReturn() throws NotContractInterfaceType, NotInterfaceType, IOException {
+        testIntArrayReturnG(false);
+    }
+
+    @Test
+    public void testIntArrayReturnP() throws NotContractInterfaceType, NotInterfaceType, IOException {
+        testIntArrayReturnG(true);
+    }
+
+    private void testNotReturnDataG(boolean isPers) throws NotContractInterfaceType, NotInterfaceType, IOException {
+        initStaticVars(3, 0, isPers, 6, (Object[]) null);
         IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
         contractOverloading.f3();
         testStaticVars(3, null, (Object[]) null);
     }
 
     @Test
-    public void testNotWaitWhenNoResultP() throws NotContractInterfaceType, NotInterfaceType, IOException {
+    public void testNotReturnData() throws NotContractInterfaceType, NotInterfaceType, IOException {
+        testNotReturnDataG(false);
+    }
+
+    @Test
+    public void testNotReturnDataP() throws NotContractInterfaceType, NotInterfaceType, IOException {
+        testNotReturnDataG(true);
+    }
+
+    private void testNotWaitWhenNoResultG(boolean isPers) throws NotContractInterfaceType, NotInterfaceType, IOException {
         final int WAIT_TIME = 1000;
         final float DELTA = 50;
-        initStaticVars(3, WAIT_TIME, true, 6, (Object[]) null);
+        initStaticVars(3, WAIT_TIME, isPers, 6, (Object[]) null);
         IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
         long startMili = System.currentTimeMillis();
         contractOverloading.f3();
@@ -240,5 +214,41 @@ public class ContractCallerTest {
         testStaticVars(3, null, (Object[]) null);
         long endServer = System.currentTimeMillis();
         Assert.assertEquals(WAIT_TIME, endServer - startMili, DELTA);
+    }
+
+    @Test
+    public void testNotWaitWhenNoResult() throws NotContractInterfaceType, NotInterfaceType, IOException {
+        testNotWaitWhenNoResultG(false);
+    }
+
+    @Test
+    public void testNotWaitWhenNoResultP() throws NotContractInterfaceType, NotInterfaceType, IOException {
+        testNotWaitWhenNoResultG(true);
+    }
+
+    private void testMultiFunctionG(boolean isPers) throws IOException, NotContractInterfaceType, NotInterfaceType {
+        Integer retI = 456;
+        String retS = "e";
+        List<Integer> iParam = new ArrayList<>(Arrays.asList(129, 343, 333, 456, 342, 352, 222, 134));
+        List<String> sParam = new ArrayList<>(Arrays.asList("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"));
+        float[] fParam = new float[]{43, (float) 43.4, 23, (float) 52.3, 562, (float) 325.9, 13, 34, 64, 2, 43, 543};
+        initStaticVars(11, 0, isPers, retI, iParam, sParam, fParam, true);
+        IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
+        contractOverloading.f8(iParam, sParam, fParam, true);
+        testStaticVars(11, retI, iParam, sParam, fParam, true);
+        initStaticVars(11, 0, isPers, retS, iParam, sParam, fParam, false);
+        contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
+        contractOverloading.f8(iParam, sParam, fParam, false);
+        testStaticVars(11, retS, iParam, sParam, fParam, false);
+    }
+
+    @Test
+    public void testMultiFunction() throws NotContractInterfaceType, IOException, NotInterfaceType {
+        testMultiFunctionG(false);
+    }
+
+    @Test
+    public void testMultiFunctionP() throws NotContractInterfaceType, IOException, NotInterfaceType {
+        testMultiFunctionG(true);
     }
 }

@@ -4,6 +4,11 @@ import imcCore.Utils.GeneralContractInterface.IContract;
 
 public class IContractImpl implements IContract {
     @Override
+    public int f(String str) {
+        return 0;
+    }
+
+    @Override
     public int f3() {
         return 0;
     }
