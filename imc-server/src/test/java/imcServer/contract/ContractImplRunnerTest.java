@@ -4,6 +4,7 @@ import imcCore.Utils.GeneralClasses.IContractImpl;
 import imcCore.Utils.GeneralClasses.IContractOverloadingImpl;
 import imcCore.Utils.GeneralContractInterface.IContract;
 import imcCore.Utils.GeneralContractInterface.IContractOverloading;
+import imcCore.Utils.GeneralTestUtils;
 import imcCore.contract.Exceptions.NotContractInterfaceType;
 import imcCore.contract.Exceptions.NotInterfaceType;
 import imcCore.contract.ImcClass;
@@ -27,6 +28,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public abstract class ContractImplRunnerTest {
+    @Override
+    public boolean equals(Object obj) {
+        return isPer == ((ContractImplRunnerTest) obj).isPer;
+    }
+
     final static int PORT = 44444;
     final static int VERSION = 1;
     static IContractOverloadingImpl impl;
@@ -213,6 +219,7 @@ public abstract class ContractImplRunnerTest {
         Assert.assertEquals(param.stream().map(Object::toString).collect(Collectors.toList()), retData.getRetObj());
         Assert.assertEquals(1, impl.f7LSLI);
     }
+
     @Test
     public void testMultiFunction() throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, IOException {
         Integer retI = 456;
@@ -220,11 +227,70 @@ public abstract class ContractImplRunnerTest {
         List<Integer> iParam = new ArrayList<>(Arrays.asList(129, 343, 333, 456, 342, 352, 222, 134));
         List<String> sParam = new ArrayList<>(Arrays.asList("a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l"));
         float[] fParam = new float[]{43, (float) 43.4, 23, (float) 52.3, 562, (float) 325.9, 13, 34, 64, 2, 43, 543};
-        MethodPocket retData=sendRunner(MethodPocket.builder().addParam(iParam).addParam(sParam).addParam(fParam).addParam(true).build(),11,true);
-        Assert.assertEquals(retI,retData.getRetObj());
-        Assert.assertEquals(1,impl.f8);
-        retData=sendRunner(MethodPocket.builder().addParam(iParam).addParam(sParam).addParam(fParam).addParam(false).build(),11,true);
-        Assert.assertEquals(retS,retData.getRetObj());
-        Assert.assertEquals(2,impl.f8);
+        MethodPocket retData = sendRunner(MethodPocket.builder().addParam(iParam).addParam(sParam).addParam(fParam).addParam(true).build(), 11, true);
+        Assert.assertEquals(retI, retData.getRetObj());
+        Assert.assertEquals(1, impl.f8);
+        retData = sendRunner(MethodPocket.builder().addParam(iParam).addParam(sParam).addParam(fParam).addParam(false).build(), 11, true);
+        Assert.assertEquals(retS, retData.getRetObj());
+        Assert.assertEquals(2, impl.f8);
+    }
+
+    @Test
+    public void testFunctionWithUnknownParamsNumber() throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, IOException {
+        MethodPocket retData = sendRunner(MethodPocket.builder().addParam(null).build(), 12, true);
+        Assert.assertEquals(null, retData.getRetObj());
+        Assert.assertEquals(1, impl.f9a);
+        retData = sendRunner(MethodPocket.builder().addParam(new Object[]{4}).build(), 12, true);
+        Assert.assertEquals(null, retData.getRetObj());
+        Assert.assertEquals(2, impl.f9a);
+        retData = sendRunner(MethodPocket.builder().addParam(new Object[]{"tre"}).build(), 12, true);
+        Assert.assertEquals(null, retData.getRetObj());
+        Assert.assertEquals(3, impl.f9a);
+        retData = sendRunner(MethodPocket.builder().addParam(new Object[]{5, "fgd", this}).build(), 12, true);
+        Assert.assertEquals(null, retData.getRetObj());
+        Assert.assertEquals(4, impl.f9a);
+    }
+
+    @Test
+    public void testNullArray() throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, IOException {
+        MethodPocket retData = sendRunner(MethodPocket.builder().addParam(null).build(), 12, true);
+        Assert.assertEquals(null, retData.getRetObj());
+        Assert.assertEquals(1, impl.f9a);
+    }
+
+    @Test
+    public void testContainerObject() throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, IOException {
+        MethodPocket retData = sendRunner(MethodPocket.builder().addParam(new IContractOverloading.ContainerObject(54)).build(), 13, true);
+        Assert.assertEquals(54, retData.getRetObj());
+        Assert.assertEquals(1, impl.f9b);
+        retData = sendRunner(MethodPocket.builder().addParam(new IContractOverloading.ContainerObject("abc")).build(), 13, true);
+        Assert.assertEquals(-1, retData.getRetObj());
+        Assert.assertEquals(2, impl.f9b);
+    }
+
+    @Test
+    public void testContainerObjectMulti() throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, IOException {
+        IContractOverloading.ContainerObject o1 = new IContractOverloading.ContainerObject(7);
+        List<IContractOverloading.ContainerObject> o2 = new ArrayList<>();
+        o2.add(new IContractOverloading.ContainerObject(7));
+        o2.add(new IContractOverloading.ContainerObject(3));
+        o2.add(new IContractOverloading.ContainerObject("asdf"));
+        o2.add(new IContractOverloading.ContainerObject(new ArrayList<Integer>(5)));
+        o2.add(new IContractOverloading.ContainerObject(5.4));
+        o2.add(new IContractOverloading.ContainerObject(true));
+        o2.add(new IContractOverloading.ContainerObject(new IContractOverloading.ContainerObject(this)));
+        IContractOverloading.ContainerObject o3a = new IContractOverloading.ContainerObject(this);
+        IContractOverloading.ContainerObject o3b = new IContractOverloading.ContainerObject(o1);
+        IContractOverloading.ContainerObject o3c = new IContractOverloading.ContainerObject(o2);
+        List<Object> lRet = new ArrayList<>();
+        lRet.add(o1.object);
+        lRet.addAll(o2);
+        IContractOverloading.ContainerObject ret = new IContractOverloading.ContainerObject(lRet);
+        MethodPocket retData = sendRunner(MethodPocket.builder().addParam(o1).addParam(o2).addParam(new Object[]{o3a, o3b, o3c}).build(), 14, true);
+        GeneralTestUtils.assertUnknownObj(ret, retData.getRetObj());
+        Assert.assertEquals(1, impl.f9c);
+        retData = sendRunner(MethodPocket.builder().addParam(o1).addParam(o2).addParam(new Object[]{o3a, o3b, o3c}).build(), 15, true);
+        GeneralTestUtils.assertUnknownObj(new IContractOverloading.ContainerObject(Arrays.asList(o3a, o3b, o3c)), retData.getRetObj());
+        Assert.assertEquals(1, impl.f9cB);
     }
 }

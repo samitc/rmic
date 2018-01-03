@@ -45,19 +45,11 @@ public class ImcMethodDesc {
     }
 
     private static void writeObject(DataOutput output, ImcClassDesc classDesc, Object obj) throws IOException {
-        if (classDesc.getClassData().isPrimitive()) {
-            FieldHandler.getTypeContract(classDesc.getClassData()).writeO(output, obj);
-        } else {
-            ImcClassDesc.writeClassDesc(output, classDesc, obj).writeBytes(obj, output);
-        }
+        classDesc.writeImcClassDescBytes(obj, output);
     }
 
     private Object readObject(DataInput input, ImcClassDesc classDesc) throws IOException, InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
-        if (classDesc.getClassData().isPrimitive()) {
-            return FieldHandler.getTypeContract(classDesc.getClassData()).read(input);
-        } else {
-            return ImcClassDesc.readClassDesc(input,classDesc).readBytes(input);
-        }
+        return classDesc.readImcClassDescBytes(input);
     }
 
     public byte[] toBytes(MethodPocket methodPocket) throws IOException {

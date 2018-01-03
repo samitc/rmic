@@ -12,7 +12,10 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public @Data
 class ImcClassDesc {
@@ -34,7 +37,7 @@ class ImcClassDesc {
         return cache.computeIfAbsent(imcClassData, imcClassData1 -> new SoftReference<>(new ImcClassDesc(imcClassData1))).get();
     }
 
-    static ImcClassDesc writeClassDesc(DataOutput output, ImcClassDesc desc, Object object) throws IOException {
+    private static ImcClassDesc writeClassDesc(DataOutput output, ImcClassDesc desc, Object object) throws IOException {
         Class<?> retClass = object.getClass();
         if (desc.getClassData() == retClass) {
             output.writeBoolean(false);
@@ -49,7 +52,7 @@ class ImcClassDesc {
         }
     }
 
-    static ImcClassDesc readClassDesc(DataInput input, ImcClassDesc desc) throws IOException {
+    private static ImcClassDesc readClassDesc(DataInput input, ImcClassDesc desc) throws IOException {
         boolean isDifferentClass = input.readBoolean();
         if (!isDifferentClass) {
             return desc;
@@ -135,62 +138,46 @@ class ImcClassDesc {
         }
     }
 
-    private void writeArray(Object arr, DataOutput output, Class<?> componentType) throws IOException {
+    private static void writeArray(Object arr, DataOutput output, Class<?> componentType) throws IOException {
         if (componentType.isPrimitive()) {
-            val typeContract = FieldHandler.getTypeContract(componentType);
-            int l = Array.getLength(arr);
-            output.writeInt(l);
-            for (int i = 0; i < l; i++) {
-                typeContract.writeO(output, Array.get(arr, i));
-            }
+            handlePrimitiveArray(arr, output, componentType);
         } else {
             Object[] arrObj = (Object[]) arr;
             output.writeInt(arrObj.length);
-            if (arrObj.length > 0) {
-                ImcClassDesc desc = writeClassDesc(output, getImcClassDesc(componentType), arrObj[0]);
-                for (Object arobj :
-                        arrObj) {
-                    desc.writeBytes(arobj, output);
-                }
+            ImcClassDesc desc = getImcClassDesc(componentType);
+            for (Object arobj :
+                    arrObj) {
+                desc.writeBytes(arobj, output);
             }
         }
     }
 
-    void writeBytes(Object obj, DataOutput output) throws IOException {
+    private static boolean writeNull(Object obj, DataOutput output) throws IOException {
         if (obj == null) {
             output.writeBoolean(true);
+            return false;
         } else {
             output.writeBoolean(false);
-            if (classData.isArray()) {
-                writeArray(obj, output, classData.getComponentType());
-            } else {
-                int size = pos.length;
-                for (int i = 0; i < size; i++) {
-                    if (types[i] != EMPTY_TYPE) {
-                        types[i].writeToStream(obj, pos[i], output);
-                    } else {
-                        Object nObj = FieldHandler.getObject(obj, pos[i]);
-                        if (customType[i].getClassData().isArray()) {
-                            writeArray(nObj, output, customType[i].getClassData().getComponentType());
-                        } else {
-                            customType[i].writeBytes(nObj, output);
-                        }
-                    }
-                }
-            }
+            return true;
         }
     }
 
-    private Object readArray(DataInput input, Class<?> componentType) throws IOException, InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+    private static void handlePrimitiveArray(Object arr, DataOutput output, Class<?> componentType) throws IOException {
+        val typeContract = FieldHandler.getTypeContract(componentType);
+        int l = Array.getLength(arr);
+        output.writeInt(l);
+        for (int i = 0; i < l; i++) {
+            typeContract.writeO(output, Array.get(arr, i));
+        }
+    }
+
+    private static Object readArray(DataInput input, Class<?> componentType) throws IOException, InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
         int l = input.readInt();
         Object obj = Array.newInstance(componentType, l);
         if (componentType.isPrimitive()) {
-            val typeContract = FieldHandler.getTypeContract(componentType);
-            for (int j = 0; j < l; j++) {
-                Array.set(obj, j, typeContract.read(input));
-            }
+            handlePrimitiveArray(input, obj, l, componentType);
         } else {
-            ImcClassDesc desc = readClassDesc(input, getImcClassDesc(componentType));
+            ImcClassDesc desc = getImcClassDesc(componentType);
             Object[] arrObj = (Object[]) obj;
             for (int i = 0; i < l; i++) {
                 arrObj[i] = desc.readBytes(input);
@@ -199,39 +186,91 @@ class ImcClassDesc {
         return obj;
     }
 
-    public Object readBytes(DataInput input) throws IllegalAccessException, InstantiationException, IOException, NoSuchMethodException, InvocationTargetException {
-        boolean isNull = input.readBoolean();
-        if (isNull) {
-            return null;
+    private static void handlePrimitiveArray(DataInput input, Object obj, int l, Class<?> componentType) throws IOException {
+        val typeContract = FieldHandler.getTypeContract(componentType);
+        for (int j = 0; j < l; j++) {
+            Array.set(obj, j, typeContract.read(input));
+        }
+    }
+
+    void writeImcClassDescBytes(Object obj, DataOutput output) throws IOException {
+        if (getClassData().isPrimitive()) {
+            FieldHandler.getTypeContract(getClassData()).writeO(output, obj);
         } else {
-            if (classData.isArray()) {
-                return readArrayBytes(input);
-            } else {
-                return readClassBytes(input);
-            }
+            writeBytes(obj, output);
         }
     }
 
-    private Object readArrayBytes(DataInput input) throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, IOException {
-        return readArray(input, classData.getComponentType());
-    }
-
-    private Object readClassBytes(DataInput input) throws NoSuchMethodException, IOException, IllegalAccessException, InvocationTargetException, InstantiationException {
-        int size = pos.length;
-        Object obj = FieldHandler.createInstance(classData);
-        for (int i = 0; i < size; i++) {
-            if (types[i] != EMPTY_TYPE) {
-                types[i].readFromStream(obj, pos[i], input);
-            } else {
-                Object puttingObject;
-                if (customType[i].getClassData().isArray()) {
-                    puttingObject = readArray(input, customType[i].getClassData().getComponentType());
+    private void writeBytes(Object obj, DataOutput output) throws IOException {
+        if (!getClassData().isPrimitive()) {
+            if (writeNull(obj, output)) {
+                if (getClassData().isArray()) {
+                    writeArray(obj, output, getClassData().getComponentType());
                 } else {
-                    puttingObject = customType[i].readBytes(input);
+                    writeClassDesc(output, this, obj).writeObject(obj, output);
                 }
-                FieldHandler.putObject(obj, pos[i], puttingObject);
+
             }
         }
-        return obj;
     }
+
+    private void writeObject(Object obj, DataOutput output) throws IOException {
+        if (getClassData().isArray()) {
+            writeArray(obj, output, getClassData().getComponentType());
+        } else {
+            int size = pos.length;
+            for (int i = 0; i < size; i++) {
+                if (types[i] != EMPTY_TYPE) {
+                    types[i].writeToStream(obj, pos[i], output);
+                } else {
+                    Object nObj = FieldHandler.getObject(obj, pos[i]);
+                    customType[i].writeBytes(nObj, output);
+                }
+            }
+        }
+    }
+
+    Object readImcClassDescBytes(DataInput input) throws InvocationTargetException, IOException, InstantiationException, NoSuchMethodException, IllegalAccessException {
+        if (getClassData().isPrimitive()) {
+            return FieldHandler.getTypeContract(getClassData()).read(input);
+        } else {
+            return readBytes(input);
+        }
+    }
+
+    private Object readBytes(DataInput input) throws IllegalAccessException, InstantiationException, IOException, NoSuchMethodException, InvocationTargetException {
+        if (!classData.isPrimitive()) {
+            if (readNull(input)) {
+                if (classData.isArray()) {
+                    return readArray(input, classData.getComponentType());
+                } else {
+                    return readClassDesc(input, this).readObject(input);
+                }
+            }
+        }
+        return null;
+    }
+
+    private Object readObject(DataInput input) throws InstantiationException, IOException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+        if (getClassData().isArray()) {
+            return readArray(input, getClassData().getComponentType());
+        } else {
+            int size = pos.length;
+            Object obj = FieldHandler.createInstance(classData);
+            for (int i = 0; i < size; i++) {
+                if (types[i] != EMPTY_TYPE) {
+                    types[i].readFromStream(obj, pos[i], input);
+                } else {
+                    Object puttingObject = customType[i].readBytes(input);
+                    FieldHandler.putObject(obj, pos[i], puttingObject);
+                }
+            }
+            return obj;
+        }
+    }
+
+    private boolean readNull(DataInput input) throws IOException {
+        return !input.readBoolean();
+    }
+
 }

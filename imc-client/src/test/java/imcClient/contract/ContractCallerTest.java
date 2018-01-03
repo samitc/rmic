@@ -34,6 +34,11 @@ public class ContractCallerTest {
     private static volatile boolean finishPutRes;
     private static int serverCalcTime;
 
+    @Override
+    public boolean equals(Object obj) {
+        return true;
+    }
+
     @BeforeClass
     public static void setUpServer() throws IOException, NotContractInterfaceType, NotInterfaceType {
         serverSocket = new ServerSocket(PORT);
@@ -250,5 +255,109 @@ public class ContractCallerTest {
     @Test
     public void testMultiFunctionP() throws NotContractInterfaceType, IOException, NotInterfaceType {
         testMultiFunctionG(true);
+    }
+
+    private void testFunctionWithUnknownParamsNumberG(boolean isPer) throws NotContractInterfaceType, NotInterfaceType, IOException {
+        initStaticVars(12, 0, isPer, null, (Object[]) null);
+        IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
+        contractOverloading.f9();
+        testStaticVars(12, null);
+        initStaticVars(12, 0, isPer, null, 4);
+        contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
+        contractOverloading.f9(4);
+        testStaticVars(12, null, new Object[]{new Object[]{4}});
+        initStaticVars(12, 0, isPer, null, "tre");
+        contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
+        contractOverloading.f9("tre");
+        testStaticVars(12, null, new Object[]{new Object[]{"tre"}});
+        initStaticVars(12, 0, isPer, null, 5, "fgd", this);
+        contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
+        contractOverloading.f9(5, "fgd", this);
+        testStaticVars(12, null, new Object[]{new Object[]{5, "fgd", this}});
+    }
+
+    @Test
+    public void testFunctionWithUnknownParamsNumber() throws NotInterfaceType, NotContractInterfaceType, IOException {
+        testFunctionWithUnknownParamsNumberG(false);
+    }
+
+    @Test
+    public void testFunctionWithUnknownParamsNumberP() throws NotInterfaceType, NotContractInterfaceType, IOException {
+        testFunctionWithUnknownParamsNumberG(true);
+    }
+
+    private void testNullArrayG(boolean isPer) throws NotInterfaceType, IOException, NotContractInterfaceType {
+        initStaticVars(12, 0, isPer, null);
+        IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
+        contractOverloading.f9();
+        testStaticVars(12, null);
+    }
+
+    @Test
+    public void testNullArray() throws NotContractInterfaceType, IOException, NotInterfaceType {
+        testNullArrayG(false);
+    }
+
+    @Test
+    public void testNullArrayP() throws NotContractInterfaceType, IOException, NotInterfaceType {
+        testNullArrayG(true);
+    }
+
+    private void testContainerObjectG(boolean isPer) throws IOException, NotContractInterfaceType, NotInterfaceType {
+        initStaticVars(13, 0, isPer, 54, new IContractOverloading.ContainerObject(54));
+        IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
+        contractOverloading.f9(new IContractOverloading.ContainerObject(54));
+        testStaticVars(13, 54, new IContractOverloading.ContainerObject(54));
+        initStaticVars(13, 0, isPer, -1, new IContractOverloading.ContainerObject("abc"));
+        contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
+        contractOverloading.f9(new IContractOverloading.ContainerObject("abc"));
+        testStaticVars(13, -1, new IContractOverloading.ContainerObject("abc"));
+    }
+
+    @Test
+    public void testContainerObject() throws NotInterfaceType, IOException, NotContractInterfaceType {
+        testContainerObjectG(false);
+    }
+
+    @Test
+    public void testContainerObjectP() throws NotInterfaceType, IOException, NotContractInterfaceType {
+        testContainerObjectG(true);
+    }
+
+    private void testContainerObjectMultiG(boolean isPer) throws NotInterfaceType, IOException, NotContractInterfaceType {
+        IContractOverloading.ContainerObject o1 = new IContractOverloading.ContainerObject(7);
+        List<IContractOverloading.ContainerObject> o2 = new ArrayList<>();
+        o2.add(new IContractOverloading.ContainerObject(7));
+        o2.add(new IContractOverloading.ContainerObject(3));
+        o2.add(new IContractOverloading.ContainerObject("asdf"));
+        o2.add(new IContractOverloading.ContainerObject(new ArrayList<Integer>(5)));
+        o2.add(new IContractOverloading.ContainerObject(5.4));
+        o2.add(new IContractOverloading.ContainerObject(true));
+        o2.add(new IContractOverloading.ContainerObject(new IContractOverloading.ContainerObject(this)));
+        IContractOverloading.ContainerObject o3a = new IContractOverloading.ContainerObject(this);
+        IContractOverloading.ContainerObject o3b = new IContractOverloading.ContainerObject(o1);
+        IContractOverloading.ContainerObject o3c = new IContractOverloading.ContainerObject(o2);
+        List<Object> lRet = new ArrayList<>();
+        lRet.add(o1.object);
+        lRet.addAll(o2);
+        IContractOverloading.ContainerObject ret = new IContractOverloading.ContainerObject(lRet);
+        initStaticVars(14, 0, isPer, ret, o1, o2, new Object[]{o3a, o3b, o3c});
+        IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
+        contractOverloading.f9(o1, o2, o3a, o3b, o3c);
+        testStaticVars(14, ret, o1, o2, new Object[]{o3a, o3b, o3c});
+        initStaticVars(15, 0, isPer, new IContractOverloading.ContainerObject(Arrays.asList(o3a, o3b, o3c)), o1, o2, new Object[]{o3a, o3b, o3c});
+        contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
+        contractOverloading.f9B(o1, o2, o3a, o3b, o3c);
+        testStaticVars(15, new IContractOverloading.ContainerObject(Arrays.asList(o3a, o3b, o3c)), o1, o2, new Object[]{o3a, o3b, o3c});
+    }
+
+    @Test
+    public void testContainerObjectMulti() throws NotContractInterfaceType, IOException, NotInterfaceType {
+        testContainerObjectMultiG(false);
+    }
+
+    @Test
+    public void testContainerObjectMultiP() throws NotContractInterfaceType, IOException, NotInterfaceType {
+        testContainerObjectMultiG(true);
     }
 }

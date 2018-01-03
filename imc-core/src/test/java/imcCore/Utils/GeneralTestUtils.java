@@ -5,22 +5,22 @@ import org.junit.Assert;
 import java.lang.reflect.Array;
 
 public class GeneralTestUtils {
-    public static void assertUnknownObj(Object retObj, Object methodPocketObject) {
-        if (retObj == null) {
+    public static void assertUnknownObj(Object obj, Object methodPocketObject) {
+        if (obj == null) {
             Assert.assertNull(methodPocketObject);
         } else {
-            if (retObj.getClass().isArray()) {
-                if (retObj.getClass().getComponentType().isPrimitive()) {
-                    int size = Array.getLength(retObj);
+            if (obj.getClass().isArray()) {
+                if (obj.getClass().getComponentType().isPrimitive()) {
+                    int size = Array.getLength(obj);
                     Assert.assertEquals(size, Array.getLength(methodPocketObject));
                     for (int i = 0; i < size; i++) {
-                        Assert.assertEquals(Array.get(retObj, i), Array.get(methodPocketObject, i));
+                        Assert.assertEquals(Array.get(obj, i), Array.get(methodPocketObject, i));
                     }
                 } else {
-                    Assert.assertArrayEquals((Object[]) retObj, (Object[]) methodPocketObject);
+                    Assert.assertArrayEquals((Object[]) obj, (Object[]) methodPocketObject);
                 }
             } else {
-                Assert.assertEquals(retObj, methodPocketObject);
+                Assert.assertEquals(obj, methodPocketObject);
             }
         }
     }

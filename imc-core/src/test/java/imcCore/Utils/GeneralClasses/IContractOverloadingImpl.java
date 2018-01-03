@@ -2,6 +2,8 @@ package imcCore.Utils.GeneralClasses;
 
 import imcCore.Utils.GeneralContractInterface.IContractOverloading;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -18,6 +20,10 @@ public class IContractOverloadingImpl implements IContractOverloading {
     public int f6IA = 0;
     public int f7LSLI = 0;
     public int f8 = 0;
+    public int f9a = 0;
+    public int f9b = 0;
+    public int f9c = 0;
+    public int f9cB = 0;
     public String f3VS_S = null;
 
     @Override
@@ -106,6 +112,35 @@ public class IContractOverloadingImpl implements IContractOverloading {
     }
 
     @Override
+    public void f9(Object... params) {
+        f9a++;
+    }
+
+    @Override
+    public Integer f9(ContainerObject o) {
+        f9b++;
+        if (o.object instanceof Integer) {
+            return (Integer) o.object;
+        }
+        return -1;
+    }
+
+    @Override
+    public ContainerObject f9(ContainerObject o1, List<ContainerObject> o2, ContainerObject... o3) {
+        f9c++;
+        List<Object> objects = new ArrayList<>();
+        objects.add(o1.object);
+        objects.addAll(o2);
+        return new ContainerObject(objects);
+    }
+
+    @Override
+    public ContainerObject f9B(ContainerObject o1, List<ContainerObject> o2, ContainerObject... o3) {
+        f9cB++;
+        return new ContainerObject(Arrays.asList(o3));
+    }
+
+    @Override
     public int f4() {
         return 0;
     }
@@ -119,6 +154,14 @@ public class IContractOverloadingImpl implements IContractOverloading {
         f3VS = 0;
         f4VB = 0;
         f4VI = 0;
+        f5SA = 0;
+        f6IA = 0;
+        f7LSLI = 0;
+        f8 = 0;
+        f9a = 0;
+        f9b = 0;
+        f9c = 0;
+        f9cB = 0;
         f3VS_S = null;
     }
 }

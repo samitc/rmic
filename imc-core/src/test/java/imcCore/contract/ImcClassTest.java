@@ -95,6 +95,10 @@ public class ImcClassTest {
                 addMethod("f6").
                 addMethod("f7", List.class).
                 addMethod("f8", List.class, List.class, float[].class, boolean.class).
+                addMethod("f9", Object[].class).
+                addMethod("f9", IContractOverloading.ContainerObject.class).
+                addMethod("f9", IContractOverloading.ContainerObject.class, List.class, IContractOverloading.ContainerObject[].class).
+                addMethod("f9B", IContractOverloading.ContainerObject.class, List.class, IContractOverloading.ContainerObject[].class).
                 build());
     }
 
@@ -110,7 +114,7 @@ public class ImcClassTest {
                 functionImcClassHelper.getMethods()) {
             for (val imcMethod :
                     imcClass.getContractMethod()) {
-                if (imcMethod.equals(method)) {
+                if (imcMethod.getMethod().equals(method)) {
                     Assert.assertEquals(method.getDeclaredAnnotation(ContractMethod.class).sendResult(), imcMethod.isSendResult());
                 }
             }
