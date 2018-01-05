@@ -24,6 +24,7 @@ public class IContractOverloadingImpl implements IContractOverloading {
     public int f9b = 0;
     public int f9c = 0;
     public int f9cB = 0;
+    public int fa1 = 0;
     public String f3VS_S = null;
 
     @Override
@@ -141,11 +142,17 @@ public class IContractOverloadingImpl implements IContractOverloading {
     }
 
     @Override
+    public TestArrayList<Integer> fa1(List<Integer> testArrayList) {
+        fa1++;
+        return new TestArrayList<>(testArrayList, testArrayList.stream().reduce((x, y) -> x + y).get());
+    }
+
+    @Override
     public int f4() {
         return 0;
     }
 
-    public void resetCals() {
+    public void resetCalls() {
         f1V = 0;
         f2VI = 0;
         f2VIB = 0;
@@ -162,6 +169,7 @@ public class IContractOverloadingImpl implements IContractOverloading {
         f9b = 0;
         f9c = 0;
         f9cB = 0;
+        fa1 = 0;
         f3VS_S = null;
     }
 }

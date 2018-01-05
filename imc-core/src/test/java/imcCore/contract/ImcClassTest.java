@@ -99,6 +99,7 @@ public class ImcClassTest {
                 addMethod("f9", IContractOverloading.ContainerObject.class).
                 addMethod("f9", IContractOverloading.ContainerObject.class, List.class, IContractOverloading.ContainerObject[].class).
                 addMethod("f9B", IContractOverloading.ContainerObject.class, List.class, IContractOverloading.ContainerObject[].class).
+                addMethod("fa1", List.class).
                 build());
     }
 

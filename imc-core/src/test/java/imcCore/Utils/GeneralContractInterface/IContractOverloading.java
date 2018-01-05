@@ -3,6 +3,7 @@ package imcCore.Utils.GeneralContractInterface;
 import imcCore.contract.annotations.ContractInterface;
 import imcCore.contract.annotations.ContractMethod;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -56,6 +57,11 @@ public interface IContractOverloading {
     @ContractMethod
     ContainerObject f9B(ContainerObject o1, List<ContainerObject> o2, ContainerObject... o3);
 
+    @ContractMethod
+    TestArrayList<Integer> fa1(List<Integer> testArrayList);
+
+    int f4();
+
     class ContainerObject {
         public Object object;
 
@@ -71,5 +77,17 @@ public interface IContractOverloading {
         }
     }
 
-    int f4();
+    class TestArrayList<T> extends ArrayList<T> {
+        public int hashTemp;
+
+        public TestArrayList(List<T> testArrayList, int hash) {
+            super(testArrayList);
+            hashTemp = hash;
+        }
+
+        @Override
+        public int hashCode() {
+            return hashTemp;
+        }
+    }
 }

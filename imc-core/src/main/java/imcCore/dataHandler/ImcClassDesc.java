@@ -209,7 +209,6 @@ class ImcClassDesc {
                 } else {
                     writeClassDesc(output, this, obj).writeObject(obj, output);
                 }
-
             }
         }
     }
@@ -218,15 +217,23 @@ class ImcClassDesc {
         if (getClassData().isArray()) {
             writeArray(obj, output, getClassData().getComponentType());
         } else {
-            int size = pos.length;
-            for (int i = 0; i < size; i++) {
-                if (types[i] != EMPTY_TYPE) {
-                    types[i].writeToStream(obj, pos[i], output);
-                } else {
-                    Object nObj = FieldHandler.getObject(obj, pos[i]);
-                    customType[i].writeBytes(nObj, output);
-                }
+            writeRealObject(obj, output);
+        }
+    }
+
+    private void writeRealObject(Object obj, DataOutput output) throws IOException {
+        int size = pos.length;
+        for (int i = 0; i < size; i++) {
+            if (types[i] != EMPTY_TYPE) {
+                types[i].writeToStream(obj, pos[i], output);
+            } else {
+                Object nObj = FieldHandler.getObject(obj, pos[i]);
+                customType[i].writeBytes(nObj, output);
             }
+        }
+        Class<?> superClass = getClassData().getSuperclass();
+        if (superClass != null) {
+            getImcClassDesc(superClass).writeRealObject(obj, output);
         }
     }
 
@@ -255,17 +262,25 @@ class ImcClassDesc {
         if (getClassData().isArray()) {
             return readArray(input, getClassData().getComponentType());
         } else {
-            int size = pos.length;
             Object obj = FieldHandler.createInstance(classData);
-            for (int i = 0; i < size; i++) {
-                if (types[i] != EMPTY_TYPE) {
-                    types[i].readFromStream(obj, pos[i], input);
-                } else {
-                    Object puttingObject = customType[i].readBytes(input);
-                    FieldHandler.putObject(obj, pos[i], puttingObject);
-                }
-            }
+            readRealObject(obj, input);
             return obj;
+        }
+    }
+
+    private void readRealObject(Object obj, DataInput input) throws IOException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+        int size = pos.length;
+        for (int i = 0; i < size; i++) {
+            if (types[i] != EMPTY_TYPE) {
+                types[i].readFromStream(obj, pos[i], input);
+            } else {
+                Object puttingObject = customType[i].readBytes(input);
+                FieldHandler.putObject(obj, pos[i], puttingObject);
+            }
+        }
+        Class<?> superClass = getClassData().getSuperclass();
+        if (superClass != null) {
+            getImcClassDesc(superClass).readRealObject(obj, input);
         }
     }
 

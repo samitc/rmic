@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public abstract class ContractImplRunnerTest {
     @Override
@@ -57,7 +58,7 @@ public abstract class ContractImplRunnerTest {
 
     @After
     public void resetImpl() {
-        impl.resetCals();
+        impl.resetCalls();
     }
 
     static void connect(boolean isPer) throws IOException {
@@ -292,5 +293,14 @@ public abstract class ContractImplRunnerTest {
         retData = sendRunner(MethodPocket.builder().addParam(o1).addParam(o2).addParam(new Object[]{o3a, o3b, o3c}).build(), 15, true);
         GeneralTestUtils.assertUnknownObj(new IContractOverloading.ContainerObject(Arrays.asList(o3a, o3b, o3c)), retData.getRetObj());
         Assert.assertEquals(1, impl.f9cB);
+    }
+
+    @Test
+    public void testBaseSave() throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, IOException {
+        List<Integer> param = Stream.of(5, 7, 3, 2, 6, 2, 6, 9, 4, 3, 75, 35, 54, 2, 567, 23, 756, 3, 453, 3423, -34, 234, -6534, 346, 3, 45, 345, 43).collect(Collectors.toList());
+        IContractOverloading.TestArrayList<Integer> ret = new IContractOverloading.TestArrayList<>(param, param.stream().reduce((x, y) -> x + y).get());
+        MethodPocket retData = sendRunner(MethodPocket.builder().addParam(param).build(), 16, true);
+        GeneralTestUtils.assertUnknownObj(ret, retData.getRetObj());
+        Assert.assertEquals(1, impl.fa1);
     }
 }

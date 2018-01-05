@@ -20,6 +20,8 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ContractCallerTest {
     private final static int PORT = 44444;
@@ -359,5 +361,24 @@ public class ContractCallerTest {
     @Test
     public void testContainerObjectMultiP() throws NotContractInterfaceType, IOException, NotInterfaceType {
         testContainerObjectMultiG(true);
+    }
+
+    private void testBaseSaveG(boolean isPer) throws IOException, NotContractInterfaceType, NotInterfaceType {
+        List<Integer> param = Stream.of(5, 7, 3, 2, 6, 2, 6, 9, 4, 3, 75, 35, 54, 2, 567, 23, 756, 3, 453, 3423, -34, 234, -6534, 346, 3, 45, 345, 43).collect(Collectors.toList());
+        IContractOverloading.TestArrayList<Integer> ret = new IContractOverloading.TestArrayList<>(param, param.stream().reduce((x, y) -> x + y).get());
+        initStaticVars(16, 0, isPer, ret, param);
+        IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
+        contractOverloading.fa1(param);
+        testStaticVars(16, ret, param);
+    }
+
+    @Test
+    public void testBaseSave() throws NotContractInterfaceType, IOException, NotInterfaceType {
+        testBaseSaveG(false);
+    }
+
+    @Test
+    public void testBaseSaveP() throws NotContractInterfaceType, IOException, NotInterfaceType {
+        testBaseSaveG(true);
     }
 }

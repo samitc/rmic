@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ImcMethodDescTest {
     private static void testImcMethod(Class<?> imcClass, boolean lastParamUnknownSize, int mIndex, Object retObj, Object... args) throws IOException, NotContractInterfaceType, NotInterfaceType, InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
@@ -254,5 +255,12 @@ public class ImcMethodDescTest {
         IContractOverloading.ContainerObject ret = new IContractOverloading.ContainerObject(lRet);
         testImcMethod(IContractOverloading.class, true, 14, ret, o1, o2, o3a, o3b, o3c);
         testImcMethod(IContractOverloading.class, true, 15, new IContractOverloading.ContainerObject(Arrays.asList(o3a, o3b, o3c)), o1, o2, o3a, o3b, o3c);
+    }
+
+    @Test
+    public void testBaseSave() throws IllegalAccessException, NotInterfaceType, IOException, NotContractInterfaceType, InstantiationException, InvocationTargetException, NoSuchMethodException {
+        List<Integer> param = Stream.of(5, 7, 3, 2, 6, 2, 6, 9, 4, 3, 75, 35, 54, 2, 567, 23, 756, 3, 453, 3423, -34, 234, -6534, 346, 3, 45, 345, 43).collect(Collectors.toList());
+        IContractOverloading.TestArrayList<Integer> ret = new IContractOverloading.TestArrayList<>(param, param.stream().reduce((x, y) -> x + y).get());
+        testImcMethod(IContractOverloading.class, 16, ret, param);
     }
 }
