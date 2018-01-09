@@ -10,6 +10,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+@Deprecated
 class NonPersistentConractImplRunner<T> extends ContractImplRunners<T> implements Runnable {
     private final ServerSocket socket;
     private final Thread runThread;

@@ -17,8 +17,13 @@ abstract class ContractImplRunners<T> {
         this.imcClass = imcClass;
     }
 
-    static <T> ContractImplRunners<T> createContractImplRunners(T impl, ImcClass imcClass, int port, boolean isPersistance) throws IOException {
-        return isPersistance ? new PersistentContractImplRunner<>(impl, imcClass, port) : new NonPersistentConractImplRunner<>(impl, imcClass, port);
+    static <T> ContractImplRunners<T> createContractImplRunners(T impl, ImcClass imcClass, int port) throws IOException {
+        return new PersistentContractImplRunner<>(impl, imcClass, port);
+    }
+
+    @Deprecated
+    static <T> ContractImplRunners<T> createNonPerContractImplRunners(T impl, ImcClass imcClass, int port) throws IOException {
+        return new NonPersistentConractImplRunner<>(impl, imcClass, port);
     }
 
     static int bytesToInt(byte[] data) {

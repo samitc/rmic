@@ -47,7 +47,7 @@ public abstract class ContractImplRunnerTest {
     static void init(boolean isPer) throws NotContractInterfaceType, NotInterfaceType, IOException {
         imcClass = new ImcClass(IContractOverloading.class);
         impl = new IContractOverloadingImpl();
-        contractImpl = ContractImplRunners.createContractImplRunners(impl, imcClass, PORT, isPer);
+        contractImpl = isPer ? ContractImplRunners.createContractImplRunners(impl, imcClass, PORT) : ContractImplRunners.createNonPerContractImplRunners(impl, imcClass, PORT);
         contractImpl.startServerAsync();
     }
 
@@ -130,7 +130,7 @@ public abstract class ContractImplRunnerTest {
     @Test
     public void testCloseServer() throws NotContractInterfaceType, NotInterfaceType, IOException {
         final int PORT = ContractImplRunnersNonPerTest.PORT + 1;
-        ContractImplRunners<IContract> contractImpl = ContractImplRunners.createContractImplRunners(new IContractImpl(), new ImcClass(IContract.class), PORT, isPer);
+        ContractImplRunners<IContract> contractImpl = isPer ? ContractImplRunners.createContractImplRunners(new IContractImpl(), new ImcClass(IContract.class), PORT) : ContractImplRunners.createNonPerContractImplRunners(new IContractImpl(), new ImcClass(IContract.class), PORT);
         contractImpl.startServerAsync();
         contractImpl.stopRunner();
         Assert.assertFalse(contractImpl.isServerRun());

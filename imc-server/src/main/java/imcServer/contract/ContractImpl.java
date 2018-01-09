@@ -36,7 +36,14 @@ public class ContractImpl<T> {
     }
 
     public void open(int port) throws IOException {
-        ContractImplRunners<T> contractImplRunner = ContractImplRunners.createContractImplRunners(impl, imcClass, port, true);
+        ContractImplRunners<T> contractImplRunner = ContractImplRunners.createContractImplRunners(impl, imcClass, port);
+        contractImplRunner.startServerAsync();
+        contractImplRunners.add(contractImplRunner);
+    }
+
+    @Deprecated
+    public void openNonPersistent(int port) throws IOException {
+        ContractImplRunners<T> contractImplRunner = ContractImplRunners.createNonPerContractImplRunners(impl, imcClass, port);
         contractImplRunner.startServerAsync();
         contractImplRunners.add(contractImplRunner);
     }
