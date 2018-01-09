@@ -63,6 +63,8 @@ class PersistentContractImplRunner<T> extends ContractImplRunners<T> {
         IoUtils.write(asynchronousSocketChannel, getVersion(), (bytes, integer) -> IoUtils.read(asynchronousSocketChannel, INT_SIZE, (bytes1, integer1) -> {
             int version = handShake(bytesToInt(bytes1));
             initConnect(asynchronousSocketChannel);
+        }, (bytes1, integer1, throwable) -> {
+            //TODO print to log
         }));
     }
 
@@ -78,6 +80,8 @@ class PersistentContractImplRunner<T> extends ContractImplRunners<T> {
             } else {
                 waitForInvoke(asynchronousSocketChannel);
             }
+        }, (bytes, integer, throwable) -> {
+            //TODO print to log
         });
     }
 
@@ -97,6 +101,8 @@ class PersistentContractImplRunner<T> extends ContractImplRunners<T> {
                 e.printStackTrace();
                 waitForInvoke(asynchronousSocketChannel);
             }
+        }, (bytes, integer, throwable) -> {
+            //TODO print to log
         });
     }
 
