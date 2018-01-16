@@ -1,5 +1,6 @@
 package imcCore.dataHandler;
 
+import imcCore.contract.Exceptions.NotContractMethodException;
 import imcCore.contract.ImcClass;
 import imcCore.contract.ImcMethod;
 import lombok.Data;
@@ -23,7 +24,7 @@ public class ImcMethodDesc {
         params = parameters.length == 0 ? null : Arrays.stream(parameters).map(ImcClassDesc::getImcClassDesc).toArray(ImcClassDesc[]::new);
     }
 
-    private ImcMethodDesc(ImcClass imcClass, int methodCode, Method method) {
+    private ImcMethodDesc(ImcClass imcClass, int methodCode, Method method) throws NotContractMethodException {
         this(imcClass.getImcMethod(methodCode), methodCode, method);
     }
 
@@ -31,11 +32,11 @@ public class ImcMethodDesc {
         this(imcMethod, methodCode, imcMethod.getMethod());
     }
 
-    ImcMethodDesc(ImcClass imcClass, int methodIndex) {
+    ImcMethodDesc(ImcClass imcClass, int methodIndex) throws NotContractMethodException {
         this(imcClass.getImcMethod(methodIndex), methodIndex);
     }
 
-    ImcMethodDesc(Method method, ImcClass imcClass) {
+    ImcMethodDesc(Method method, ImcClass imcClass) throws NotContractMethodException {
 
         this(imcClass, getMethodPos(method, imcClass), method);
     }

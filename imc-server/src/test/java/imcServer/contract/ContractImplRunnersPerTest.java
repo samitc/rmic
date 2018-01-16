@@ -1,10 +1,12 @@
 package imcServer.contract;
 
 import imcCore.contract.Exceptions.NotContractInterfaceType;
+import imcCore.contract.Exceptions.NotContractMethodException;
 import imcCore.contract.Exceptions.NotInterfaceType;
 import imcCore.contract.ImcMethod;
 import imcCore.dataHandler.MethodPocket;
-import org.junit.*;
+import org.junit.Assert;
+import org.junit.BeforeClass;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -18,7 +20,12 @@ public class ContractImplRunnersPerTest extends ContractImplRunnerTest {
     }
 
     MethodPocket sendRunner(MethodPocket send, int methodIndex, boolean waitForInvoke) throws IOException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
-        ImcMethod imcMethod = imcClass.getImcMethod(methodIndex);
+        ImcMethod imcMethod = null;
+        try {
+            imcMethod = imcClass.getImcMethod(methodIndex);
+        } catch (NotContractMethodException e) {
+            return null;
+        }
         byte[] buf = imcMethod.write(send);
         output.writeInt(buf.length);
         output.write(buf);

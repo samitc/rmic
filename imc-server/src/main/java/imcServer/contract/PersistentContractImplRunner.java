@@ -1,6 +1,7 @@
 package imcServer.contract;
 
 import Utils.IoUtils.IoUtils;
+import imcCore.contract.Exceptions.NotContractMethodException;
 import imcCore.contract.ImcClass;
 
 import java.io.IOException;
@@ -96,7 +97,7 @@ class PersistentContractImplRunner<T> extends ContractImplRunners<T> {
                 } else {
                     waitForInvoke(asynchronousSocketChannel);
                 }
-            } catch (IllegalAccessException | IOException | InstantiationException | InvocationTargetException | NoSuchMethodException e) {
+            } catch (IllegalAccessException | IOException | InstantiationException | InvocationTargetException | NoSuchMethodException | NotContractMethodException e) {
                 //TODO print to log
                 e.printStackTrace();
                 waitForInvoke(asynchronousSocketChannel);

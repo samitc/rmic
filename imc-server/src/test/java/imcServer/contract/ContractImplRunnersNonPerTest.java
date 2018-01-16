@@ -1,10 +1,12 @@
 package imcServer.contract;
 
 import imcCore.contract.Exceptions.NotContractInterfaceType;
+import imcCore.contract.Exceptions.NotContractMethodException;
 import imcCore.contract.Exceptions.NotInterfaceType;
 import imcCore.contract.ImcMethod;
 import imcCore.dataHandler.MethodPocket;
-import org.junit.*;
+import org.junit.Assert;
+import org.junit.BeforeClass;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -31,7 +33,12 @@ public class ContractImplRunnersNonPerTest extends ContractImplRunnerTest {
         connect(false);
         DataInputStream input = new DataInputStream(client.getInputStream());
         DataOutputStream output = new DataOutputStream(client.getOutputStream());
-        ImcMethod imcMethod = imcClass.getImcMethod(methodIndex);
+        ImcMethod imcMethod;
+        try {
+            imcMethod = imcClass.getImcMethod(methodIndex);
+        } catch (NotContractMethodException e) {
+            return null;
+        }
         byte[] buf = imcMethod.write(send);
         output.writeInt(buf.length);
         output.write(buf);

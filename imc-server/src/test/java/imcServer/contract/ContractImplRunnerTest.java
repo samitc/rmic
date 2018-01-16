@@ -6,6 +6,7 @@ import imcCore.Utils.GeneralContractInterface.IContract;
 import imcCore.Utils.GeneralContractInterface.IContractOverloading;
 import imcCore.Utils.GeneralTestUtils;
 import imcCore.contract.Exceptions.NotContractInterfaceType;
+import imcCore.contract.Exceptions.NotContractMethodException;
 import imcCore.contract.Exceptions.NotInterfaceType;
 import imcCore.contract.ImcClass;
 import imcCore.contract.ImcMethod;
@@ -98,7 +99,7 @@ public abstract class ContractImplRunnerTest {
     }
 
     @Test
-    public void testWrongNumberOfArgument() throws IOException {
+    public void testWrongNumberOfArgument() throws IOException, NotContractMethodException {
         val client = new Socket();
         client.connect(new InetSocketAddress("localhost", PORT));
         DataInputStream input = new DataInputStream(client.getInputStream());
@@ -113,7 +114,7 @@ public abstract class ContractImplRunnerTest {
     }
 
     @Test
-    public void testWrongReturn() throws IOException {
+    public void testWrongReturn() throws IOException, NotContractMethodException {
         val client = new Socket();
         client.connect(new InetSocketAddress("localhost", PORT));
         DataInputStream input = new DataInputStream(client.getInputStream());
@@ -302,5 +303,11 @@ public abstract class ContractImplRunnerTest {
         MethodPocket retData = sendRunner(MethodPocket.builder().addParam(param).build(), 16, true);
         GeneralTestUtils.assertUnknownObj(ret, retData.getRetObj());
         Assert.assertEquals(1, impl.fa1);
+    }
+
+    @Test
+    public void testNotContractMethod() throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, IOException {
+        MethodPocket retData = sendRunner(MethodPocket.builder().build(), -1, true);
+        Assert.assertNull(retData);
     }
 }

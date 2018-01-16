@@ -3,20 +3,22 @@ package imcClient.contract;
 import imcCore.Utils.GeneralContractInterface.IContractOverloading;
 import imcCore.Utils.GeneralTestUtils;
 import imcCore.contract.Exceptions.NotContractInterfaceType;
+import imcCore.contract.Exceptions.NotContractMethodException;
 import imcCore.contract.Exceptions.NotInterfaceType;
 import imcCore.contract.ImcClass;
 import imcCore.dataHandler.MethodPocket;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.hamcrest.CoreMatchers;
+import org.junit.*;
+import org.junit.rules.ExpectedException;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.UndeclaredThrowableException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -36,6 +38,9 @@ public class ContractCallerTest {
     private static volatile boolean finishPutRes;
     private static int serverCalcTime;
 
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
     @Override
     public boolean equals(Object obj) {
         return true;
@@ -50,6 +55,7 @@ public class ContractCallerTest {
             try {
                 while (true) {
                     Socket client = serverSocket.accept();
+                    client.setSoTimeout(1000);
                     finishPutRes = false;
                     DataOutputStream output = new DataOutputStream(client.getOutputStream());
                     DataInputStream input = new DataInputStream(client.getInputStream());
@@ -66,7 +72,12 @@ public class ContractCallerTest {
                         }
                     }
                     isPersistencePass = false;
-                    byte[] buf = new byte[input.readInt()];
+                    byte[] buf;
+                    try {
+                        buf = new byte[input.readInt()];
+                    } catch (SocketTimeoutException e) {
+                        continue;
+                    }
                     input.read(buf);
                     methodIndex = ((buf[0] & 0xFF) << 24) | ((buf[1] & 0xFF) << 16)
                             | ((buf[2] & 0xFF) << 8) | (buf[3] & 0xFF);
@@ -83,7 +94,7 @@ public class ContractCallerTest {
                     output.close();
                     client.close();
                 }
-            } catch (IOException | IllegalAccessException | InstantiationException | NullPointerException | InterruptedException | NoSuchMethodException | InvocationTargetException e) {
+            } catch (IOException | IllegalAccessException | InstantiationException | NullPointerException | InterruptedException | NoSuchMethodException | InvocationTargetException | NotContractMethodException e) {
                 e.printStackTrace();
             }
         });
@@ -380,5 +391,24 @@ public class ContractCallerTest {
     @Test
     public void testBaseSaveP() throws NotContractInterfaceType, IOException, NotInterfaceType {
         testBaseSaveG(true);
+    }
+
+    private void testNotContractMethodG(boolean isPer) throws IOException, NotContractInterfaceType, NotInterfaceType {
+        expectedException.expect(UndeclaredThrowableException.class);
+        expectedException.expectCause(CoreMatchers.isA(NotContractMethodException.class));
+        initStaticVars(-1, 0, isPer, 5);
+        IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
+        contractOverloading.f4();
+        testStaticVars(-1, 5);
+    }
+
+    @Test
+    public void testNotContractMethod() throws IOException, NotContractInterfaceType, NotInterfaceType {
+        testNotContractMethodG(false);
+    }
+
+    @Test
+    public void testNotContractMethodP() throws IOException, NotContractInterfaceType, NotInterfaceType {
+        testNotContractMethodG(true);
     }
 }

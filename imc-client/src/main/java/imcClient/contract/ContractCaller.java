@@ -2,6 +2,7 @@ package imcClient.contract;
 
 import Utils.IoUtils.IoUtils;
 import imcCore.contract.Exceptions.NotContractInterfaceType;
+import imcCore.contract.Exceptions.NotContractMethodException;
 import imcCore.contract.Exceptions.NotInterfaceType;
 import imcCore.contract.ImcClass;
 import imcCore.contract.ImcMethod;
@@ -97,8 +98,13 @@ public abstract class ContractCaller implements InvocationHandler {
     }
 
     @Override
-    public Object invoke(Object proxy, Method method, Object[] args) {
-        return invoke(methodsMap.computeIfAbsent(method, m -> imcClass.getImcMethod(imcClass.getMethodIndex(m))), args);
+    public Object invoke(Object proxy, Method method, Object[] args) throws NotContractMethodException {
+        ImcMethod imcMethod = methodsMap.get(method);
+        if (imcMethod == null) {
+            imcMethod = imcClass.getImcMethod(imcClass.getMethodIndex(method));
+            methodsMap.put(method, imcMethod);
+        }
+        return invoke(imcMethod, args);
     }
 
     final int readFlags(InputStream input) throws IOException {

@@ -1,6 +1,7 @@
 package imcCore.contract;
 
 import imcCore.contract.Exceptions.NotContractInterfaceType;
+import imcCore.contract.Exceptions.NotContractMethodException;
 import imcCore.contract.Exceptions.NotInterfaceType;
 import imcCore.contract.annotations.ContractInterface;
 import imcCore.contract.annotations.ContractMethod;
@@ -78,7 +79,10 @@ class ImcClass {
         return -1;
     }
 
-    public ImcMethod getImcMethod(int index) {
+    public ImcMethod getImcMethod(int index) throws NotContractMethodException {
+        if (index < 0 || index > contractMethod.size()) {
+            throw new NotContractMethodException();
+        }
         return contractMethod.get(index);
     }
 

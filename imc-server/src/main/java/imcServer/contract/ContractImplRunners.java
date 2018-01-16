@@ -1,5 +1,6 @@
 package imcServer.contract;
 
+import imcCore.contract.Exceptions.NotContractMethodException;
 import imcCore.contract.ImcClass;
 import imcCore.contract.ImcMethod;
 import imcCore.dataHandler.MethodPocket;
@@ -40,14 +41,14 @@ abstract class ContractImplRunners<T> {
         return buf;
     }
 
-    byte[] invokeMethod(byte[] buf) throws IllegalAccessException, IOException, InstantiationException, InvocationTargetException, NoSuchMethodException {
+    byte[] invokeMethod(byte[] buf) throws IllegalAccessException, IOException, InstantiationException, InvocationTargetException, NoSuchMethodException, NotContractMethodException {
         ImcMethod imcMethod = getImcMethod(buf);
         MethodPocket receivedData = imcMethod.read(buf);
         MethodPocket sentData = invokeContract(imcMethod, receivedData);
         return sentData != null ? imcMethod.write(sentData) : null;
     }
 
-    private ImcMethod getImcMethod(byte[] data) {
+    private ImcMethod getImcMethod(byte[] data) throws NotContractMethodException {
         int methodIndex = bytesToInt(data);
         return imcClass.getImcMethod(methodIndex);
     }

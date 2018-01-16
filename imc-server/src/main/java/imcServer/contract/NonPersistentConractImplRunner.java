@@ -1,6 +1,7 @@
 package imcServer.contract;
 
 import Utils.IoUtils.IoUtils;
+import imcCore.contract.Exceptions.NotContractMethodException;
 import imcCore.contract.ImcClass;
 
 import java.io.IOException;
@@ -15,6 +16,7 @@ class NonPersistentConractImplRunner<T> extends ContractImplRunners<T> implement
     private final ServerSocket socket;
     private final Thread runThread;
     private volatile boolean isStopServer;
+    private static final int READ_TIMEOUT = 10000;
 
     NonPersistentConractImplRunner(T impl, ImcClass imcClass, int port) throws IOException {
         super(impl, imcClass, port);
@@ -46,6 +48,7 @@ class NonPersistentConractImplRunner<T> extends ContractImplRunners<T> implement
             OutputStream cOutput = null;
             try {
                 client = socket.accept();
+                client.setSoTimeout(READ_TIMEOUT);
                 cInput = client.getInputStream();
                 cOutput = client.getOutputStream();
                 int version = handleNewClient(cInput, cOutput);
@@ -56,7 +59,7 @@ class NonPersistentConractImplRunner<T> extends ContractImplRunners<T> implement
                         writeInvokeBuf(cOutput, rBuf);
                     }
                 }
-            } catch (IOException | IllegalAccessException | InstantiationException | InvocationTargetException | IllegalArgumentException | NoSuchMethodException e) {
+            } catch (IOException | IllegalAccessException | InstantiationException | InvocationTargetException | IllegalArgumentException | NoSuchMethodException | NotContractMethodException e) {
                 //TODO print to log
                 e.printStackTrace();
             } finally {
