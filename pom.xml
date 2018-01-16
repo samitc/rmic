@@ -14,7 +14,7 @@
         <maven.source.lombok.version>1.16.18</maven.source.lombok.version>
         <maven.testing.junit.version>4.12</maven.testing.junit.version>
         <maven.imc.version>1.0.0-SNAPSHOT</maven.imc.version>
-        <maven.jotils.version>0.1.2</maven.jotils.version>
+        <maven.jotils.version>0.1.3-SNAPSHOT</maven.jotils.version>
         <java.version>1.8</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>

@@ -62,8 +62,10 @@ class PersistentContractImplRunner<T> extends ContractImplRunners<T> {
 
     private void connectClient(AsynchronousSocketChannel asynchronousSocketChannel) {
         IoUtils.write(asynchronousSocketChannel, getVersion(), (bytes, integer) -> IoUtils.read(asynchronousSocketChannel, INT_SIZE, (bytes1, integer1) -> {
-            int version = handShake(bytesToInt(bytes1));
-            initConnect(asynchronousSocketChannel);
+            if (integer1 == INT_SIZE) {
+                int version = handShake(bytesToInt(bytes1));
+                initConnect(asynchronousSocketChannel);
+            }
         }, (bytes1, integer1, throwable) -> {
             //TODO print to log
         }));
@@ -75,11 +77,13 @@ class PersistentContractImplRunner<T> extends ContractImplRunners<T> {
 
     private void waitForInvoke(AsynchronousSocketChannel asynchronousSocketChannel) {
         IoUtils.read(asynchronousSocketChannel, INT_SIZE, (bytes, integer) -> {
-            int bufSize = bytesToInt(bytes);
-            if (bufSize > 0) {
-                readMethodInvokeBuf(asynchronousSocketChannel, bufSize);
-            } else {
-                waitForInvoke(asynchronousSocketChannel);
+            if (integer == INT_SIZE) {
+                int bufSize = bytesToInt(bytes);
+                if (bufSize > 0) {
+                    readMethodInvokeBuf(asynchronousSocketChannel, bufSize);
+                } else {
+                    waitForInvoke(asynchronousSocketChannel);
+                }
             }
         }, (bytes, integer, throwable) -> {
             //TODO print to log
@@ -88,19 +92,21 @@ class PersistentContractImplRunner<T> extends ContractImplRunners<T> {
 
     private void readMethodInvokeBuf(AsynchronousSocketChannel asynchronousSocketChannel, int bufSize) {
         IoUtils.read(asynchronousSocketChannel, bufSize, (bytes, integer) -> {
-            try {
-                byte[] sendBuf = invokeMethod(bytes);
-                if (sendBuf != null) {
-                    IoUtils.write(asynchronousSocketChannel, intToBytes(sendBuf.length), (bytes1, integer1) ->
-                            IoUtils.write(asynchronousSocketChannel, sendBuf, (bytes2, integer2) ->
-                                    waitForInvoke(asynchronousSocketChannel)));
-                } else {
+            if (integer == bufSize) {
+                try {
+                    byte[] sendBuf = invokeMethod(bytes);
+                    if (sendBuf != null) {
+                        IoUtils.write(asynchronousSocketChannel, intToBytes(sendBuf.length), (bytes1, integer1) ->
+                                IoUtils.write(asynchronousSocketChannel, sendBuf, (bytes2, integer2) ->
+                                        waitForInvoke(asynchronousSocketChannel)));
+                    } else {
+                        waitForInvoke(asynchronousSocketChannel);
+                    }
+                } catch (IllegalAccessException | IOException | InstantiationException | InvocationTargetException | NoSuchMethodException | NotContractMethodException e) {
+                    //TODO print to log
+                    e.printStackTrace();
                     waitForInvoke(asynchronousSocketChannel);
                 }
-            } catch (IllegalAccessException | IOException | InstantiationException | InvocationTargetException | NoSuchMethodException | NotContractMethodException e) {
-                //TODO print to log
-                e.printStackTrace();
-                waitForInvoke(asynchronousSocketChannel);
             }
         }, (bytes, integer, throwable) -> {
             //TODO print to log
