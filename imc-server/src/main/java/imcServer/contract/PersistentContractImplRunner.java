@@ -68,11 +68,15 @@ class PersistentContractImplRunner<T> extends ContractImplRunners<T> {
             }
         }, (bytes1, integer1, throwable) -> {
             //TODO print to log
-        }));
+        }), (bytes, integer, throwable) -> {
+            //TODO print to log
+        });
     }
 
     private void initConnect(AsynchronousSocketChannel asynchronousSocketChannel) {
-        IoUtils.write(asynchronousSocketChannel, getServerConf(), (bytes, integer) -> waitForInvoke(asynchronousSocketChannel));
+        IoUtils.write(asynchronousSocketChannel, getServerConf(), (bytes, integer) -> waitForInvoke(asynchronousSocketChannel), (bytes, integer, throwable) -> {
+            //TODO print to log
+        });
     }
 
     private void waitForInvoke(AsynchronousSocketChannel asynchronousSocketChannel) {
@@ -98,7 +102,11 @@ class PersistentContractImplRunner<T> extends ContractImplRunners<T> {
                     if (sendBuf != null) {
                         IoUtils.write(asynchronousSocketChannel, intToBytes(sendBuf.length), (bytes1, integer1) ->
                                 IoUtils.write(asynchronousSocketChannel, sendBuf, (bytes2, integer2) ->
-                                        waitForInvoke(asynchronousSocketChannel)));
+                                        waitForInvoke(asynchronousSocketChannel), (bytes2, integer2, throwable) -> {
+                                    //TODO print to log
+                                }), (bytes1, integer1, throwable) -> {
+                            //TODO print to log
+                        });
                     } else {
                         waitForInvoke(asynchronousSocketChannel);
                     }
