@@ -231,7 +231,7 @@ public class ContractCallerTest {
         Assert.assertEquals(0, endMili - startMili, DELTA);
         testStaticVars(3, null, (Object[]) null);
         long endServer = System.currentTimeMillis();
-        Assert.assertEquals(WAIT_TIME, endServer - startMili, DELTA);
+        Assert.assertEquals(WAIT_TIME, endServer - startMili, DELTA * 2);
     }
 
     @Test

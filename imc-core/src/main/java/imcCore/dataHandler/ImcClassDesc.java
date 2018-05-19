@@ -34,7 +34,16 @@ class ImcClassDesc {
     }
 
     static ImcClassDesc getImcClassDesc(Class<?> imcClassData) {
-        return cache.computeIfAbsent(imcClassData, imcClassData1 -> new SoftReference<>(new ImcClassDesc(imcClassData1))).get();
+        SoftReference<ImcClassDesc> ref = cache.get(imcClassData);
+        ImcClassDesc classDesc = null;
+        if (ref != null) {
+            classDesc = cache.get(imcClassData).get();
+        }
+        if (classDesc == null) {
+            classDesc = new ImcClassDesc(imcClassData);
+            cache.put(imcClassData, new SoftReference<>(classDesc));
+        }
+        return classDesc;
     }
 
     private static ImcClassDesc writeClassDesc(DataOutput output, ImcClassDesc desc, Object object) throws IOException {
