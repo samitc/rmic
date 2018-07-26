@@ -10,6 +10,7 @@
     <packaging>pom</packaging>
     <properties>
         <maven.plugin.build.version>3.7.0</maven.plugin.build.version>
+        <maven.plugin.test.version>2.22.0</maven.plugin.test.version>
         <maven.plugin.jar.version>3.0.2</maven.plugin.jar.version>
         <maven.source.lombok.version>1.16.18</maven.source.lombok.version>
         <maven.testing.junit.version>4.12</maven.testing.junit.version>
@@ -20,6 +21,11 @@
     </properties>
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven.plugin.test.version}</version>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>

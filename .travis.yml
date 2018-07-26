@@ -1,0 +1,94 @@
+language: java
+jdk:
+  - oraclejdk8
+  - oraclejdk9
+  - openjdk8
+  - openjdk9
+cache:
+  directories:
+    - "$HOME/.m2"
+before_cache:
+  - rm -rf $HOME/.m2/repository/com/github/samitc/imc
+env:
+  - MODULE_TO_RUN=imc-client
+  - MODULE_TO_RUN=imc-server
+  - TEST_TO_RUN=!*Performance* MODULE_TO_RUN=imc-core
+jobs:
+  fast_finish: true
+  allow_failures:
+    - jdk: openjdk9
+  include:
+    - stage: performance test
+      env:
+      before_script:
+        - MODULE_TO_RUN=imc-core
+        - TEST_TO_RUN=ImcMethodDescPerformanceTest#NetworkTest
+    - stage: performance test
+      env:
+      before_script:
+        - MODULE_TO_RUN=imc-core
+        - TEST_TO_RUN=ImcMethodDescPerformanceTest#benchmarkTest
+        - ADDITIONAL_ARGUMENT=-DbenchTest=".voidVoidWrite"
+    - stage: performance test
+      env:
+      before_script:
+        - MODULE_TO_RUN=imc-core
+        - TEST_TO_RUN=ImcMethodDescPerformanceTest#benchmarkTest
+        - ADDITIONAL_ARGUMENT=-DbenchTest=".voidVoidRead"
+    - stage: performance test
+      env:
+      before_script:
+        - MODULE_TO_RUN=imc-core
+        - TEST_TO_RUN=ImcMethodDescPerformanceTest#benchmarkTest
+        - ADDITIONAL_ARGUMENT=-DbenchTest=".intListIRead"
+    - stage: performance test
+      env:
+      before_script:
+        - MODULE_TO_RUN=imc-core
+        - TEST_TO_RUN=ImcMethodDescPerformanceTest#benchmarkTest
+        - ADDITIONAL_ARGUMENT=-DbenchTest=".floatListFWrite"
+    - stage: performance test
+      env:
+      before_script:
+        - MODULE_TO_RUN=imc-core
+        - TEST_TO_RUN=ImcMethodDescPerformanceTest#benchmarkTest
+        - ADDITIONAL_ARGUMENT=-DbenchTest=".floatListFRead"
+    - stage: performance test
+      env:
+      before_script:
+        - MODULE_TO_RUN=imc-core
+        - TEST_TO_RUN=ImcMethodDescPerformanceTest#benchmarkTest
+        - ADDITIONAL_ARGUMENT=-DbenchTest=".lIintAWrite"
+    - stage: performance test
+      env:
+      before_script:
+        - MODULE_TO_RUN=imc-core
+        - TEST_TO_RUN=ImcMethodDescPerformanceTest#benchmarkTest
+        - ADDITIONAL_ARGUMENT=-DbenchTest=".lIintARead"
+    - stage: performance test
+      env:
+      before_script:
+        - MODULE_TO_RUN=imc-core
+        - TEST_TO_RUN=ImcMethodDescPerformanceTest#benchmarkTest
+        - ADDITIONAL_ARGUMENT=-DbenchTest=".strCACAWrite"
+    - stage: performance test
+      env:
+      before_script:
+        - MODULE_TO_RUN=imc-core
+        - TEST_TO_RUN=ImcMethodDescPerformanceTest#benchmarkTest
+        - ADDITIONAL_ARGUMENT=-DbenchTest=".strCACARead"
+    - stage: performance test
+      env:
+      before_script:
+        - MODULE_TO_RUN=imc-core
+        - TEST_TO_RUN=ImcMethodDescPerformanceTest#benchmarkTest
+        - ADDITIONAL_ARGUMENT=-DbenchTest=".intIIWrite"
+    - stage: performance test
+      env:
+      before_script:
+        - MODULE_TO_RUN=imc-core
+        - TEST_TO_RUN=ImcMethodDescPerformanceTest#benchmarkTest
+        - ADDITIONAL_ARGUMENT=-DbenchTest=".intIIRead"
+          
+script:
+  - mvn $ADDITIONAL_ARGUMENT -Dtest=$TEST_TO_RUN -pl $MODULE_TO_RUN test
