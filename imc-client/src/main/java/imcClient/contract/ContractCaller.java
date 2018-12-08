@@ -28,13 +28,13 @@ public abstract class ContractCaller implements InvocationHandler {
     static {
         primitiveMap = new HashMap<>();
         primitiveMap.put(boolean.class, false);
-        primitiveMap.put(byte.class, 0);
-        primitiveMap.put(short.class, 0);
-        primitiveMap.put(int.class, 0);
-        primitiveMap.put(long.class, 0);
-        primitiveMap.put(char.class, 0);
-        primitiveMap.put(float.class, 0);
-        primitiveMap.put(double.class, 0);
+        primitiveMap.put(byte.class, (byte) 0);
+        primitiveMap.put(short.class, (short) 0);
+        primitiveMap.put(int.class, (int) 0);
+        primitiveMap.put(long.class, (long) 0);
+        primitiveMap.put(char.class, (char) 0);
+        primitiveMap.put(float.class, (float) 0);
+        primitiveMap.put(double.class, (double) 0);
     }
 
     private final String hostName;
