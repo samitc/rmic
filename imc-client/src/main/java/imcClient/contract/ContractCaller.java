@@ -7,6 +7,7 @@ import imcCore.contract.Exceptions.NotInterfaceType;
 import imcCore.contract.ImcClass;
 import imcCore.contract.ImcMethod;
 import imcCore.dataHandler.MethodPocket;
+import imcCore.utils.StreamUtil;
 import lombok.val;
 
 import java.io.*;
@@ -43,8 +44,8 @@ public abstract class ContractCaller implements InvocationHandler {
     private final Map<Method, ImcMethod> methodsMap;
     private final int version;
     private Socket client;
-    private DataInputStream input;
-    private DataOutputStream output;
+    private InputStream input;
+    private OutputStream output;
 
     ContractCaller(String hostName, int port, ImcClass interfaceType, Socket client, int version) throws IOException {
         this.hostName = hostName;
@@ -53,8 +54,8 @@ public abstract class ContractCaller implements InvocationHandler {
         this.version = version;
         imcClass = interfaceType;
         methodsMap = new HashMap<>();
-        input = new DataInputStream(client.getInputStream());
-        output = new DataOutputStream(client.getOutputStream());
+        input = client.getInputStream();
+        output = client.getOutputStream();
     }
 
     private static ContractCaller createContractCaller(String hostName, int port, ImcClass interfaceType) throws IOException {
@@ -76,14 +77,16 @@ public abstract class ContractCaller implements InvocationHandler {
         return intImpl;
     }
 
-    private static int handShake(DataInput input, DataOutput output) throws IOException {
-        int serverVersion = input.readInt();
+    private static int handShake(InputStream input, OutputStream output) throws IOException {
+        byte[] ver = new byte[4];
+        IoUtils.read(input, ver, 4);
+        int serverVersion = StreamUtil.bytesToInt(ver, 0);
         int version = Math.min(VERSION, serverVersion);
-        output.writeInt(version);
+        output.write(StreamUtil.intToBytes(version));
         return version;
     }
 
-    private static int startConnect(DataInput input, DataOutput output) throws IOException {
+    private static int startConnect(InputStream input, OutputStream output) throws IOException {
         return handShake(input, output);
     }
 
@@ -115,14 +118,15 @@ public abstract class ContractCaller implements InvocationHandler {
 
     }
 
-    private void sendMethodData(DataOutputStream output, ImcMethod imcMethod, Object[] args) throws IOException {
+    private void sendMethodData(OutputStream output, ImcMethod imcMethod, Object[] args) throws IOException {
         val methodPocketBuilder = MethodPocket.builder();
         if (args != null) {
             Arrays.stream(args).forEach(methodPocketBuilder::addParam);
         }
         byte[] sBuf = imcMethod.write(methodPocketBuilder.build());
-        output.writeInt(sBuf.length);
-        output.write(sBuf);
+        byte[] buf = new byte[4 + sBuf.length];
+        System.arraycopy(sBuf, 0, buf, 4, sBuf.length);
+        output.write(buf);
     }
 
     private Object invoke(ImcMethod imcMethod, Object[] args) {
@@ -148,8 +152,10 @@ public abstract class ContractCaller implements InvocationHandler {
 
     abstract void finishMethodHandle();
 
-    private MethodPocket receivedMethodData(DataInputStream input, ImcMethod imcMethod) throws IOException, InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
-        int bufSize = input.readInt();
+    private MethodPocket receivedMethodData(InputStream input, ImcMethod imcMethod) throws IOException, InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+        byte[] buf = new byte[4];
+        IoUtils.read(input, buf, 4);
+        int bufSize = StreamUtil.bytesToInt(buf, 0);
         byte[] rBuf = new byte[bufSize];
         IoUtils.read(input, rBuf, bufSize);
         return imcMethod.read(rBuf);
