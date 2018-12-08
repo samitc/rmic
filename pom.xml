@@ -14,6 +14,7 @@
         <maven.plugin.jar.version>3.0.2</maven.plugin.jar.version>
         <maven.source.lombok.version>1.16.18</maven.source.lombok.version>
         <maven.testing.junit.version>4.12</maven.testing.junit.version>
+        <maven.testing.jmh.version>1.21</maven.testing.jmh.version>
         <maven.imc.version>1.0.0-SNAPSHOT</maven.imc.version>
         <maven.jotils.version>0.1.3-SNAPSHOT</maven.jotils.version>
         <java.version>1.8</java.version>
@@ -51,6 +52,16 @@
                 <artifactId>io-utils</artifactId>
                 <version>${maven.jotils.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.openjdk.jmh</groupId>
+                <artifactId>jmh-core</artifactId>
+                <version>${maven.testing.jmh.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.openjdk.jmh</groupId>
+                <artifactId>jmh-generator-annprocess</artifactId>
+                <version>${maven.testing.jmh.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
     <dependencies>
@@ -69,5 +80,6 @@
         <module>imc-core</module>
         <module>imc-server</module>
         <module>imc-client</module>
+        <module>imc-testing</module>
     </modules>
 </project>

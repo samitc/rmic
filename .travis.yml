@@ -89,6 +89,42 @@ jobs:
         - MODULE_TO_RUN=imc-core
         - TEST_TO_RUN=ImcMethodDescPerformanceTest#benchmarkTest
         - ADDITIONAL_ARGUMENT=-DbenchTest=".intIIRead"
+    - stage: performance test
+      env:
+      before_script:
+        - MODULE_TO_RUN=imc-testing
+        - TEST_TO_RUN=ImcPerformanceTesting#clientServerBenchmarkTest
+        - ADDITIONAL_ARGUMENT=-DclientServerBenchTest=".emptyMethod"
+    - stage: performance test
+      env:
+      before_script:
+        - MODULE_TO_RUN=imc-testing
+        - TEST_TO_RUN=ImcPerformanceTesting#clientServerBenchmarkTest
+        - ADDITIONAL_ARGUMENT=-DclientServerBenchTest=".longParams"
+    - stage: performance test
+      env:
+      before_script:
+        - MODULE_TO_RUN=imc-testing
+        - TEST_TO_RUN=ImcPerformanceTesting#clientServerBenchmarkTest
+        - ADDITIONAL_ARGUMENT=-DclientServerBenchTest=".longParamsWithNoResult"
+    - stage: performance test
+      env:
+      before_script:
+        - MODULE_TO_RUN=imc-testing
+        - TEST_TO_RUN=ImcPerformanceTesting#clientServerBenchmarkTest
+        - ADDITIONAL_ARGUMENT=-DclientServerBenchTest=".longParamsReturns"
+    - stage: performance test
+      env:
+      before_script:
+        - MODULE_TO_RUN=imc-testing
+        - TEST_TO_RUN=ImcPerformanceTesting#clientServerBenchmarkTest
+        - ADDITIONAL_ARGUMENT=-DclientServerBenchTest=".twoParams"
+    - stage: performance test
+      env:
+      before_script:
+        - MODULE_TO_RUN=imc-testing
+        - TEST_TO_RUN=ImcPerformanceTesting#clientServerBenchmarkTest
+        - ADDITIONAL_ARGUMENT=-DclientServerBenchTest=".noResult"
           
 script:
   - mvn $ADDITIONAL_ARGUMENT -Dtest=$TEST_TO_RUN -pl $MODULE_TO_RUN test
