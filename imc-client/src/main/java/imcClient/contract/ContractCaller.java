@@ -125,6 +125,7 @@ public abstract class ContractCaller implements InvocationHandler {
         }
         byte[] sBuf = imcMethod.write(methodPocketBuilder.build());
         byte[] buf = new byte[4 + sBuf.length];
+        StreamUtil.addIntToByte(buf, sBuf.length, 0);
         System.arraycopy(sBuf, 0, buf, 4, sBuf.length);
         output.write(buf);
     }
