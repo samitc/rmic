@@ -3,6 +3,7 @@ package imcServer.contract;
 import Utils.IoUtils.IoUtils;
 import imcCore.contract.Exceptions.NotContractMethodException;
 import imcCore.contract.ImcClass;
+import imcCore.utils.StreamUtil;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -100,11 +101,11 @@ class PersistentContractImplRunner<T> extends ContractImplRunners<T> {
                 try {
                     byte[] sendBuf = invokeMethod(bytes);
                     if (sendBuf != null) {
-                        IoUtils.write(asynchronousSocketChannel, intToBytes(sendBuf.length), (bytes1, integer1) ->
-                                IoUtils.write(asynchronousSocketChannel, sendBuf, (bytes2, integer2) ->
-                                        waitForInvoke(asynchronousSocketChannel), (bytes2, integer2, throwable) -> {
-                                    //TODO print to log
-                                }), (bytes1, integer1, throwable) -> {
+                        byte[] buf = new byte[4 + sendBuf.length];
+                        StreamUtil.addIntToByte(buf, sendBuf.length, 0);
+                        System.arraycopy(sendBuf, 0, buf, 4, sendBuf.length);
+                        IoUtils.write(asynchronousSocketChannel, buf, (bytes1, integer1) ->
+                                waitForInvoke(asynchronousSocketChannel), (bytes1, integer1, throwable) -> {
                             //TODO print to log
                         });
                     } else {

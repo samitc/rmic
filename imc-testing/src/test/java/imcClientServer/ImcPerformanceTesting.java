@@ -73,7 +73,7 @@ public class ImcPerformanceTesting {
     }
 
     @Benchmark
-    public int longParams() {
+    public int longParamsWithReturn() {
         return client.f2(intList);
     }
 

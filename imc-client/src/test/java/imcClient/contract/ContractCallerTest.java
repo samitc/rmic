@@ -1,24 +1,18 @@
 package imcClient.contract;
 
+import imcClient.ServerMock;
 import imcCore.Utils.GeneralContractInterface.IContractOverloading;
 import imcCore.Utils.GeneralTestUtils;
 import imcCore.contract.Exceptions.NotContractInterfaceType;
 import imcCore.contract.Exceptions.NotContractMethodException;
 import imcCore.contract.Exceptions.NotInterfaceType;
-import imcCore.contract.ImcClass;
 import imcCore.dataHandler.MethodPocket;
 import org.hamcrest.CoreMatchers;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.UndeclaredThrowableException;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -28,111 +22,58 @@ import java.util.stream.Stream;
 public class ContractCallerTest {
     private final static int PORT = 44444;
     private final static int VERSION = 1;
-    private static Thread server;
-    private static ServerSocket serverSocket;
-    private static ImcClass imcClass;
-    private static int methodIndex;
-    private static MethodPocket methodPocket;
-    private static MethodPocket retMethodPocket;
-    private static boolean isPers;
-    private static volatile boolean finishPutRes;
-    private static int serverCalcTime;
+    private static ServerMock server;
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    @Override
-    public boolean equals(Object obj) {
-        return true;
-    }
-
     @BeforeClass
     public static void setUpServer() throws IOException, NotContractInterfaceType, NotInterfaceType {
-        serverSocket = new ServerSocket(PORT);
-        imcClass = new ImcClass(IContractOverloading.class);
-        server = new Thread(() -> {
-            boolean isPersistencePass = false;
-            try {
-                while (true) {
-                    Socket client = serverSocket.accept();
-                    client.setSoTimeout(1000);
-                    finishPutRes = false;
-                    DataOutputStream output = new DataOutputStream(client.getOutputStream());
-                    DataInputStream input = new DataInputStream(client.getInputStream());
-                    output.writeInt(VERSION);
-                    input.readInt();//read version
-                    if (isPers) {
-                        output.write(1);
-                    } else {
-                        output.write(0);
-                        if (!isPersistencePass) {
-                            isPersistencePass = true;
-                            client.close();
-                            continue;
-                        }
-                    }
-                    isPersistencePass = false;
-                    byte[] buf;
-                    try {
-                        buf = new byte[input.readInt()];
-                    } catch (SocketTimeoutException e) {
-                        continue;
-                    }
-                    input.read(buf);
-                    methodIndex = ((buf[0] & 0xFF) << 24) | ((buf[1] & 0xFF) << 16)
-                            | ((buf[2] & 0xFF) << 8) | (buf[3] & 0xFF);
-                    Thread.sleep(serverCalcTime);
-                    methodPocket = imcClass.getImcMethod(methodIndex).read(buf);
-                    if (imcClass.getImcMethod(methodIndex).isSendResult()) {
-                        methodPocket = new MethodPocket(retMethodPocket.getRetObj(), methodPocket.getParamsObject());
-                        buf = imcClass.getImcMethod(methodIndex).write(methodPocket);
-                        output.writeInt(buf.length);
-                        output.write(buf);
-                    }
-                    finishPutRes = true;
-                    input.close();
-                    output.close();
-                    client.close();
-                }
-            } catch (IOException | IllegalAccessException | InstantiationException | NullPointerException | InterruptedException | NoSuchMethodException | InvocationTargetException | NotContractMethodException e) {
-                e.printStackTrace();
-            }
-        });
-        server.start();
+        server = new ServerMock(PORT, VERSION, IContractOverloading.class);
+        server.startServer();
     }
 
     @AfterClass
     public static void closeServer() {
         try {
-            serverSocket.close();
+            server.stopServer();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     private static void initStaticVars(int methodI, int serverCalcTime, boolean isPers, Object retObj, Object... params) {
-        methodIndex = methodI;
-        ContractCallerTest.serverCalcTime = serverCalcTime;
-        ContractCallerTest.isPers = isPers;
-        retMethodPocket = new MethodPocket(retObj, null);
+        MethodPocket retMethodPocket = new MethodPocket(retObj, null);
         List<Object> paramsL = null;
         if (params != null) {
             paramsL = new ArrayList<>(Arrays.asList(params));
         }
-        methodPocket = new MethodPocket(null, paramsL);
+        MethodPocket methodPocket = new MethodPocket(null, paramsL);
+        server.setVars(methodI, serverCalcTime, isPers, retMethodPocket, methodPocket);
     }
 
     private static void testStaticVars(int methodI, Object retObj, Object... params) {
-        while (!finishPutRes) ;
-        Assert.assertEquals(methodI, methodIndex);
-        GeneralTestUtils.assertUnknownObj(retObj, methodPocket.getRetObj());
+        server.waitForFinish();
+        Assert.assertEquals(methodI, server.getMethodIndex());
+        GeneralTestUtils.assertUnknownObj(retObj, server.getMethodPocket().getRetObj());
         if (params == null) {
-            Assert.assertEquals(0, methodPocket.getParamsObject().size());
+            Assert.assertEquals(0, server.getMethodPocket().getParamsObject().size());
         } else {
             for (int i = 0; i < params.length; i++) {
-                GeneralTestUtils.assertUnknownObj(params[i], methodPocket.getParamsObject().get(i));
+                GeneralTestUtils.assertUnknownObj(params[i], server.getMethodPocket().getParamsObject().get(i));
             }
         }
+    }
+
+    /**
+     * Part of the tests using this for method pocket, so need to implement equals to compare.
+     *
+     * @param obj
+     * @return
+     */
+    @Override
+    public boolean equals(Object obj) {
+        return obj == this || obj instanceof ContractCallerTest;
     }
 
     private void testEmptyMethodG(boolean isPer) throws NotContractInterfaceType, NotInterfaceType, IOException {
@@ -376,7 +317,7 @@ public class ContractCallerTest {
 
     private void testBaseSaveG(boolean isPer) throws IOException, NotContractInterfaceType, NotInterfaceType {
         List<Integer> param = Stream.of(5, 7, 3, 2, 6, 2, 6, 9, 4, 3, 75, 35, 54, 2, 567, 23, 756, 3, 453, 3423, -34, 234, -6534, 346, 3, 45, 345, 43).collect(Collectors.toList());
-        IContractOverloading.TestArrayList<Integer> ret = new IContractOverloading.TestArrayList<>(param, param.stream().reduce((x, y) -> x + y).get());
+        IContractOverloading.TestArrayList<Integer> ret = new IContractOverloading.TestArrayList<>(param, param.stream().reduce(0, (x, y) -> x + y));
         initStaticVars(16, 0, isPer, ret, param);
         IContractOverloading contractOverloading = ContractCaller.getInterfaceContract(IContractOverloading.class, "localhost", PORT);
         contractOverloading.fa1(param);

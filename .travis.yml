@@ -100,7 +100,7 @@ jobs:
       before_script:
         - MODULE_TO_RUN=imc-testing
         - TEST_TO_RUN=ImcPerformanceTesting#clientServerBenchmarkTest
-        - ADDITIONAL_ARGUMENT=-DclientServerBenchTest=".longParams"
+        - ADDITIONAL_ARGUMENT=-DclientServerBenchTest=".longParamsWithReturn"
     - stage: performance test
       env:
       before_script:
@@ -127,4 +127,4 @@ jobs:
         - ADDITIONAL_ARGUMENT=-DclientServerBenchTest=".noResult"
           
 script:
-  - mvn $ADDITIONAL_ARGUMENT -Dtest=$TEST_TO_RUN -pl $MODULE_TO_RUN test
+  - mvn -Djmh.scorePrecision=10 $ADDITIONAL_ARGUMENT -Dtest=$TEST_TO_RUN -pl $MODULE_TO_RUN test
