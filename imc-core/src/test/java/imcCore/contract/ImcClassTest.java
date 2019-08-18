@@ -1,5 +1,8 @@
 package imcCore.contract;
 
+import imcCore.Utils.GeneralClasses.C;
+import imcCore.Utils.GeneralClasses.E;
+import imcCore.Utils.GeneralClasses.T;
 import imcCore.Utils.GeneralContractInterface.*;
 import imcCore.contract.Exceptions.ContractException;
 import imcCore.contract.Exceptions.NotContractInterfaceType;
@@ -100,6 +103,10 @@ public class ImcClassTest {
                 addMethod("f9", IContractOverloading.ContainerObject.class, List.class, IContractOverloading.ContainerObject[].class).
                 addMethod("f9B", IContractOverloading.ContainerObject.class, List.class, IContractOverloading.ContainerObject[].class).
                 addMethod("fa1", List.class).
+                addMethod("fa21", C.class).
+                addMethod("fa22", E.class).
+                addMethod("fa23", T.class).
+                addMethod("fa24", E.class, T.class).
                 build());
     }
 

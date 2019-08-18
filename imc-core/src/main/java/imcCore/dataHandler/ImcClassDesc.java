@@ -1,23 +1,20 @@
 package imcCore.dataHandler;
 
 import imcCore.dataHandler.classHandlers.ITypeContract;
+import imcCore.utils.StreamUtil;
 import lombok.Data;
 import lombok.val;
 
-import java.io.DataInput;
-import java.io.DataOutput;
 import java.io.IOException;
 import java.lang.ref.SoftReference;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Stream;
 
-public @Data
+@Data
 class ImcClassDesc {
     private final Class<?> classData;
     private final ITypeContract<?>[] types;
@@ -42,34 +39,30 @@ class ImcClassDesc {
         if (classDesc == null) {
             classDesc = new ImcClassDesc(imcClassData);
             cache.put(imcClassData, new SoftReference<>(classDesc));
+            classDesc.init();
         }
         return classDesc;
     }
 
-    private static ImcClassDesc writeClassDesc(DataOutput output, ImcClassDesc desc, Object object) throws IOException {
+    private ImcClassDesc writeClassDesc(DataOutputLen output, Object object) throws IOException {
         Class<?> retClass = object.getClass();
-        if (desc.getClassData() == retClass) {
+        if (getClassData() == retClass) {
             output.writeBoolean(false);
-            return desc;
+            return this;
         } else {
             output.writeBoolean(true);
             String name = retClass.getName();
-            byte[] data = name.getBytes("UTF-8");
-            output.writeInt(data.length);
-            output.write(data);
+            StreamUtil.writeString(name, output);
             return ImcClassDesc.getImcClassDesc(retClass);
         }
     }
 
-    private static ImcClassDesc readClassDesc(DataInput input, ImcClassDesc desc) throws IOException {
+    private ImcClassDesc readClassDesc(DataInputLen input) throws IOException {
         boolean isDifferentClass = input.readBoolean();
         if (!isDifferentClass) {
-            return desc;
+            return this;
         } else {
-            int dataL = input.readInt();
-            byte[] data = new byte[dataL];
-            input.readFully(data);
-            String name = new String(data, "UTF-8");
+            String name = StreamUtil.readString(input);
             Class<?> retClass = null;
             try {
                 retClass = Class.forName(name);
@@ -83,14 +76,17 @@ class ImcClassDesc {
 
     private ImcClassDesc(Class<?> imcClassData) {
         classData = imcClassData;
-        List<ITypeContract<?>> cTypes = new ArrayList<>();
-        List<Integer> cPos = new ArrayList<>();
-        List<ImcClassDesc> cCustomType = new ArrayList<>();
-        readAllFields(imcClassData, cTypes, cPos, cCustomType);
-        int size = cTypes.size();
+        int size = (int) readFields(imcClassData).count();
         types = new ITypeContract<?>[size];
         pos = new int[size];
         customType = new ImcClassDesc[size];
+    }
+
+    private void init() {
+        List<ITypeContract<?>> cTypes = new ArrayList<>();
+        List<Integer> cPos = new ArrayList<>();
+        List<ImcClassDesc> cCustomType = new ArrayList<>();
+        readAllFields(classData, cTypes, cPos, cCustomType);
         sortData(cTypes, cPos, cCustomType);
     }
 
@@ -138,16 +134,15 @@ class ImcClassDesc {
         }
     }
 
-    private void readAllFields(Class<?> fieldClass, List<ITypeContract<?>> cTypes, List<Integer> cPos, List<ImcClassDesc> cCustomType) {
-        Field[] fields = fieldClass.getDeclaredFields();
-        for (Field field : fields) {
-            if (!Modifier.isStatic(field.getModifiers())) {
-                readClass(new FieldHandler(field), cTypes, cPos, cCustomType);
-            }
-        }
+    private static Stream<Field> readFields(Class<?> fieldClass) {
+        return Arrays.stream(fieldClass.getDeclaredFields()).filter(field -> !Modifier.isStatic(field.getModifiers()));
     }
 
-    private static void writeArray(Object arr, DataOutput output, Class<?> componentType) throws IOException {
+    private void readAllFields(Class<?> fieldClass, List<ITypeContract<?>> cTypes, List<Integer> cPos, List<ImcClassDesc> cCustomType) {
+        readFields(fieldClass).forEach(field -> readClass(new FieldHandler(field), cTypes, cPos, cCustomType));
+    }
+
+    private static void writeArray(Object arr, Map<Object, Integer> objects, DataOutputLen output, Class<?> componentType) throws IOException {
         if (componentType.isPrimitive()) {
             handlePrimitiveArray(arr, output, componentType);
         } else {
@@ -156,12 +151,12 @@ class ImcClassDesc {
             ImcClassDesc desc = getImcClassDesc(componentType);
             for (Object arobj :
                     arrObj) {
-                desc.writeBytes(arobj, output);
+                desc.writeBytes(arobj, objects, output);
             }
         }
     }
 
-    private static boolean writeNull(Object obj, DataOutput output) throws IOException {
+    private static boolean writeNull(Object obj, DataOutputLen output) throws IOException {
         if (obj == null) {
             output.writeBoolean(true);
             return false;
@@ -171,7 +166,7 @@ class ImcClassDesc {
         }
     }
 
-    private static void handlePrimitiveArray(Object arr, DataOutput output, Class<?> componentType) throws IOException {
+    private static void handlePrimitiveArray(Object arr, DataOutputLen output, Class<?> componentType) throws IOException {
         val typeContract = FieldHandler.getTypeContract(componentType);
         int l = Array.getLength(arr);
         output.writeInt(l);
@@ -180,121 +175,137 @@ class ImcClassDesc {
         }
     }
 
-    private static Object readArray(DataInput input, Class<?> componentType) throws IOException, InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+    private static Object readArray(DataInputLen input, Map<Integer, Object> objects, Class<?> componentType) throws IOException, InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+        int objPos = input.readed();
         int l = input.readInt();
         Object obj = Array.newInstance(componentType, l);
+        objects.put(objPos, obj);
         if (componentType.isPrimitive()) {
             handlePrimitiveArray(input, obj, l, componentType);
         } else {
             ImcClassDesc desc = getImcClassDesc(componentType);
             Object[] arrObj = (Object[]) obj;
             for (int i = 0; i < l; i++) {
-                arrObj[i] = desc.readBytes(input);
+                arrObj[i] = desc.readBytes(input, objects);
             }
         }
         return obj;
     }
 
-    private static void handlePrimitiveArray(DataInput input, Object obj, int l, Class<?> componentType) throws IOException {
+    private static void handlePrimitiveArray(DataInputLen input, Object obj, int l, Class<?> componentType) throws IOException {
         val typeContract = FieldHandler.getTypeContract(componentType);
         for (int j = 0; j < l; j++) {
             Array.set(obj, j, typeContract.read(input));
         }
     }
 
-    void writeImcClassDescBytes(Object obj, DataOutput output) throws IOException {
+    void writeImcClassDescBytes(Object obj, DataOutputLen output) throws IOException {
+        Map<Object, Integer> objects = new HashMap<>();
         if (getClassData().isPrimitive()) {
             FieldHandler.getTypeContract(getClassData()).writeO(output, obj);
         } else {
-            writeBytes(obj, output);
+            writeBytes(obj, objects, output);
         }
     }
 
-    private void writeBytes(Object obj, DataOutput output) throws IOException {
+    private void writeBytes(Object obj, Map<Object, Integer> objects, DataOutputLen output) throws IOException {
         if (!getClassData().isPrimitive()) {
             if (writeNull(obj, output)) {
-                if (getClassData().isArray()) {
-                    writeArray(obj, output, getClassData().getComponentType());
-                } else {
-                    writeClassDesc(output, this, obj).writeObject(obj, output);
+                if (!writeCycleReference(obj, objects, output)) {
+                    if (getClassData().isArray()) {
+                        writeArray(obj, objects, output, getClassData().getComponentType());
+                    } else {
+                        writeClassDesc(output, obj).writeRealObject(obj, objects, output);
+                    }
                 }
             }
         }
     }
 
-    private void writeObject(Object obj, DataOutput output) throws IOException {
-        if (getClassData().isArray()) {
-            writeArray(obj, output, getClassData().getComponentType());
-        } else {
-            writeRealObject(obj, output);
+    private boolean writeCycleReference(Object obj, Map<Object, Integer> objects, DataOutputLen output) throws IOException {
+        Integer streamPos = objects.get(obj);
+        if (streamPos != null) {
+            output.writeBoolean(true);
+            output.writeInt(streamPos);
+            return true;
         }
+        output.writeBoolean(false);
+        objects.put(obj, output.size());
+        return false;
     }
 
-    private void writeRealObject(Object obj, DataOutput output) throws IOException {
+    private void writeRealObject(Object obj, Map<Object, Integer> objects, DataOutputLen output) throws IOException {
         int size = pos.length;
         for (int i = 0; i < size; i++) {
             if (types[i] != EMPTY_TYPE) {
                 types[i].writeToStream(obj, pos[i], output);
             } else {
                 Object nObj = FieldHandler.getObject(obj, pos[i]);
-                customType[i].writeBytes(nObj, output);
+                customType[i].writeBytes(nObj, objects, output);
             }
         }
         Class<?> superClass = getClassData().getSuperclass();
         if (superClass != null) {
-            getImcClassDesc(superClass).writeRealObject(obj, output);
+            getImcClassDesc(superClass).writeRealObject(obj, objects, output);
         }
     }
 
-    Object readImcClassDescBytes(DataInput input) throws InvocationTargetException, IOException, InstantiationException, NoSuchMethodException, IllegalAccessException {
+    Object readImcClassDescBytes(DataInputLen input) throws InvocationTargetException, IOException, InstantiationException, NoSuchMethodException, IllegalAccessException {
+        Map<Integer, Object> objects = new HashMap<>();
         if (getClassData().isPrimitive()) {
             return FieldHandler.getTypeContract(getClassData()).read(input);
         } else {
-            return readBytes(input);
+            return readBytes(input, objects);
         }
     }
 
-    private Object readBytes(DataInput input) throws IllegalAccessException, InstantiationException, IOException, NoSuchMethodException, InvocationTargetException {
+    private Object readBytes(DataInputLen input, Map<Integer, Object> objects) throws IllegalAccessException, InstantiationException, IOException, NoSuchMethodException, InvocationTargetException {
         if (!classData.isPrimitive()) {
             if (readNull(input)) {
-                if (classData.isArray()) {
-                    return readArray(input, classData.getComponentType());
-                } else {
-                    return readClassDesc(input, this).readObject(input);
+                Object obj = readCycleReference(input, objects);
+                if (obj == null) {
+                    if (classData.isArray()) {
+                        obj = readArray(input, objects, classData.getComponentType());
+                    } else {
+                        int objPos = input.readed();
+                        ImcClassDesc readDesc = readClassDesc(input);
+                        obj = FieldHandler.createInstance(readDesc.classData);
+                        objects.put(objPos, obj);
+                        readDesc.readRealObject(obj, objects, input);
+                    }
                 }
+                return obj;
             }
         }
         return null;
     }
 
-    private Object readObject(DataInput input) throws InstantiationException, IOException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
-        if (getClassData().isArray()) {
-            return readArray(input, getClassData().getComponentType());
-        } else {
-            Object obj = FieldHandler.createInstance(classData);
-            readRealObject(obj, input);
-            return obj;
+    private Object readCycleReference(DataInputLen input, Map<Integer, Object> objects) throws IOException {
+        boolean isCycle = input.readBoolean();
+        if (isCycle) {
+            int pos = input.readInt();
+            return objects.get(pos);
         }
+        return null;
     }
 
-    private void readRealObject(Object obj, DataInput input) throws IOException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+    private void readRealObject(Object obj, Map<Integer, Object> objects, DataInputLen input) throws IOException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
         int size = pos.length;
         for (int i = 0; i < size; i++) {
             if (types[i] != EMPTY_TYPE) {
                 types[i].readFromStream(obj, pos[i], input);
             } else {
-                Object puttingObject = customType[i].readBytes(input);
+                Object puttingObject = customType[i].readBytes(input, objects);
                 FieldHandler.putObject(obj, pos[i], puttingObject);
             }
         }
         Class<?> superClass = getClassData().getSuperclass();
         if (superClass != null) {
-            getImcClassDesc(superClass).readRealObject(obj, input);
+            getImcClassDesc(superClass).readRealObject(obj, objects, input);
         }
     }
 
-    private boolean readNull(DataInput input) throws IOException {
+    private boolean readNull(DataInputLen input) throws IOException {
         return !input.readBoolean();
     }
-
 }

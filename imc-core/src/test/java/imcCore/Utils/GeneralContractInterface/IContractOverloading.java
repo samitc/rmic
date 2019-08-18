@@ -1,5 +1,8 @@
 package imcCore.Utils.GeneralContractInterface;
 
+import imcCore.Utils.GeneralClasses.C;
+import imcCore.Utils.GeneralClasses.E;
+import imcCore.Utils.GeneralClasses.T;
 import imcCore.contract.annotations.ContractInterface;
 import imcCore.contract.annotations.ContractMethod;
 
@@ -59,6 +62,15 @@ public interface IContractOverloading {
 
     @ContractMethod
     TestArrayList<Integer> fa1(List<Integer> testArrayList);
+
+    @ContractMethod
+    C fa21(C c);
+    @ContractMethod
+    E fa22(E e);
+    @ContractMethod
+    T fa23( T t);
+    @ContractMethod
+    C fa24(E e, T t);
 
     int f4();
 

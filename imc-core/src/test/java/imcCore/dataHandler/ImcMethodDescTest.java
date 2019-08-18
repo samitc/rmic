@@ -1,6 +1,10 @@
 package imcCore.dataHandler;
 
 
+import imcCore.Utils.GeneralClasses.C;
+import imcCore.Utils.GeneralClasses.E;
+import imcCore.Utils.GeneralClasses.IContractOverloadingImpl;
+import imcCore.Utils.GeneralClasses.T;
 import imcCore.Utils.GeneralContractInterface.IContract;
 import imcCore.Utils.GeneralContractInterface.IContractOverloading;
 import imcCore.Utils.GeneralTestUtils;
@@ -14,14 +18,11 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.ByteArrayOutputStream;
-import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -97,7 +98,7 @@ public class ImcMethodDescTest {
     }
 
     private static void writeObject(DataOutputStream output, Class<?> realClass, Object obj) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
-        val meth = ImcMethodDesc.class.getDeclaredMethod("writeObject", DataOutput.class, ImcClassDesc.class, Object.class);
+        val meth = ImcMethodDesc.class.getDeclaredMethod("writeObject", DataOutputStream.class, ImcClassDesc.class, Object.class);
         meth.setAccessible(true);
         meth.invoke(null, output, ImcClassDesc.getImcClassDesc(realClass), obj);
     }
@@ -115,6 +116,7 @@ public class ImcMethodDescTest {
     public void testNotContractMethod() throws NotContractInterfaceType, NotInterfaceType, NotContractMethodException {
         testImcMethod(IContract.class, -1, int.class);
     }
+
     @Test
     public void testObjectReturn() throws NotContractInterfaceType, NotInterfaceType, NotContractMethodException {
         testImcMethod(IContract.class, 0, int.class, String.class);
@@ -265,7 +267,93 @@ public class ImcMethodDescTest {
     @Test
     public void testBaseSave() throws IllegalAccessException, NotInterfaceType, IOException, NotContractInterfaceType, InstantiationException, InvocationTargetException, NoSuchMethodException, NotContractMethodException {
         List<Integer> param = Stream.of(5, 7, 3, 2, 6, 2, 6, 9, 4, 3, 75, 35, 54, 2, 567, 23, 756, 3, 453, 3423, -34, 234, -6534, 346, 3, 45, 345, 43).collect(Collectors.toList());
-        IContractOverloading.TestArrayList<Integer> ret = new IContractOverloading.TestArrayList<>(param, param.stream().reduce((x, y) -> x + y).get());
+        IContractOverloading.TestArrayList<Integer> ret = new IContractOverloading.TestArrayList<>(param, param.stream().reduce(Integer::sum).get());
         testImcMethod(IContractOverloading.class, 16, ret, param);
+    }
+
+    private static C createC() {
+        C root = new C();
+        C lastA = null, lastB = null;
+        Queue<C> process = new ArrayDeque<>();
+        process.add(root);
+        List<C> selfChange = new ArrayList<>();
+        for (int i = 0; i < 100; i++) {
+            C cur = process.poll();
+            cur.i = i;
+            if (i % 5 == 0) {
+                selfChange.add(cur);
+            }
+            cur.s = cur;
+            lastA = new C();
+            lastB = new C();
+            cur.a = lastA;
+            cur.b = lastB;
+            process.add(lastA);
+            process.add(lastB);
+        }
+        for (int i = 0; i < selfChange.size(); i += 2) {
+            selfChange.get(i).s = selfChange.get(i + 1).s;
+        }
+        lastA.a = root;
+        lastB.b = root;
+        return root;
+    }
+
+    private static E createE() {
+        E e = new E();
+        e.g = 6;
+        e.c = createC();
+        e.s = Stream.of(createC(), createC(), e.c, createC());
+        e.t = new T();
+        e.t.t = new T();
+        e.t.t.t = e.t;
+        e.t.e = e;
+        e.t.c = e.c;
+        e.t.g = 6;
+        e.t.s = e.s;
+        return e;
+    }
+
+    private static T createT() {
+        T t = new T();
+        t.e = createE();
+        t.t = new T();
+        t.t.c = createC();
+        t.c = createC();
+        t.s = Stream.of(createC(), createC(), createC(), createC());
+        t.g = 432;
+        return t;
+    }
+
+    @Test
+    public void selfContainTest() throws IllegalAccessException, NotInterfaceType, IOException, NotContractInterfaceType, InstantiationException, InvocationTargetException, NoSuchMethodException, NotContractMethodException {
+        C c = createC();
+        C r = new C();
+        r.s = c;
+        testImcMethod(IContractOverloading.class, 17, r, c);
+    }
+
+    @Test
+    public void containCycleSelfTest() throws IllegalAccessException, NotInterfaceType, IOException, NotContractInterfaceType, InstantiationException, InvocationTargetException, NoSuchMethodException, NotContractMethodException {
+        E e = createE();
+        E r = new E();
+        r.t = new T();
+        r.t.e = e;
+        testImcMethod(IContractOverloading.class, 18, r, e);
+    }
+
+    @Test
+    public void selfContainCycleTest() throws IllegalAccessException, NotInterfaceType, IOException, NotContractInterfaceType, InstantiationException, InvocationTargetException, NoSuchMethodException, NotContractMethodException {
+        T t = createT();
+        T r = new T();
+        r.t = t;
+        testImcMethod(IContractOverloading.class, 19, r, t);
+    }
+
+    @Test
+    public void selfCycleContainTest() throws IllegalAccessException, NotInterfaceType, IOException, NotContractInterfaceType, InstantiationException, InvocationTargetException, NoSuchMethodException, NotContractMethodException {
+        E e = createE();
+        T t = createT();
+        testImcMethod(IContractOverloading.class, 20, IContractOverloadingImpl.fa2s4(e, t), e, t);
     }
 }

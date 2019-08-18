@@ -144,7 +144,45 @@ public class IContractOverloadingImpl implements IContractOverloading {
     @Override
     public TestArrayList<Integer> fa1(List<Integer> testArrayList) {
         fa1++;
-        return new TestArrayList<>(testArrayList, testArrayList.stream().reduce((x, y) -> x + y).get());
+        return new TestArrayList<>(testArrayList, testArrayList.stream().reduce(Integer::sum).get());
+    }
+
+    @Override
+    public C fa21(C c) {
+        C rc=new C();
+        rc.s=c;
+        return rc;
+    }
+
+    @Override
+    public E fa22(E e) {
+        E re=new E();
+        re.t=new T();
+        re.t.e=e;
+        return re;
+    }
+
+    @Override
+    public T fa23(T t) {
+        T rt=new T();
+        rt.t=t;
+        return rt;
+    }
+
+    public static C fa2s4(E e, T t) {
+        C c = new C();
+        c.i = e.g;
+        c.s = new C();
+        c.s.i = t.g;
+        c.s.s = c;
+        c.a = e.c;
+        c.b = t.c;
+        return c;
+    }
+
+    @Override
+    public C fa24(E e, T t) {
+        return fa2s4(e, t);
     }
 
     @Override

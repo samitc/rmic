@@ -118,4 +118,16 @@ public class ImcClassDescTest {
     public void staticTest(){
         testClass(S.class);
     }
+    @Test
+    public void selfContainTest(){
+        testClass(C.class);
+    }
+    @Test
+    public void selfContainCycleTest(){
+        testClass(T.class);
+    }
+    @Test
+    public void containCycleSelfTest(){
+        testClass(E.class);
+    }
 }
