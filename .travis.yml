@@ -1,9 +1,13 @@
 language: java
 jdk:
-  - oraclejdk8
-  - oraclejdk9
+  - oraclejdk11
+  - oraclejdk12
+  - oraclejdk13
+  - oraclejdk-ea
   - openjdk8
   - openjdk9
+  - openjdk11
+  - openjdk12
 cache:
   directories:
     - "$HOME/.m2"
@@ -16,7 +20,8 @@ env:
 jobs:
   fast_finish: true
   allow_failures:
-    - jdk: openjdk9
+    - jdk: oraclejdk-ea
+    - jdk: oraclejdk13
   include:
     - stage: performance test
       env:
