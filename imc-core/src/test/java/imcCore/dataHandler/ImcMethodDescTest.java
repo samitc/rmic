@@ -237,6 +237,11 @@ public class ImcMethodDescTest {
     }
 
     @Test
+    public void testUnknownTypeAsArray() throws IllegalAccessException, NotInterfaceType, IOException, NotContractInterfaceType, InstantiationException, InvocationTargetException, NoSuchMethodException, NotContractMethodException {
+        testImcMethod(IContractOverloading.class, true, 12, null, new int[]{1, 3, 4}, new Float[]{1f, 4f, 6f}, new Object[]{new int[]{3, 4, 5}, new String[]{"a", "b"}});
+    }
+
+    @Test
     public void testContainerObject() throws IllegalAccessException, NotInterfaceType, IOException, NotContractInterfaceType, InstantiationException, InvocationTargetException, NoSuchMethodException, NotContractMethodException {
         testImcMethod(IContractOverloading.class, 13, 54, 54);
         testImcMethod(IContractOverloading.class, 13, "fghd", -1);

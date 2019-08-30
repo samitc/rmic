@@ -212,13 +212,21 @@ class ImcClassDesc {
         if (!getClassData().isPrimitive()) {
             if (writeNull(obj, output)) {
                 if (!writeCycleReference(obj, objects, output)) {
-                    if (getClassData().isArray()) {
-                        writeArray(obj, objects, output, getClassData().getComponentType());
-                    } else {
-                        writeClassDesc(output, obj).writeRealObject(obj, objects, output);
+                    ImcClassDesc real = this;
+                    if (!getClassData().isArray()) {
+                        real = writeClassDesc(output, obj);
                     }
+                    real.writeReal(obj, objects, output);
                 }
             }
+        }
+    }
+
+    private void writeReal(Object obj, Map<Object, Integer> objects, DataOutputLen output) throws IOException {
+        if (getClassData().isArray()) {
+            writeArray(obj, objects, output, getClassData().getComponentType());
+        } else {
+            writeRealObject(obj, objects, output);
         }
     }
 
@@ -265,19 +273,28 @@ class ImcClassDesc {
                 Object obj = readCycleReference(input, objects);
                 if (obj == null) {
                     if (classData.isArray()) {
-                        obj = readArray(input, objects, classData.getComponentType());
+                        obj = readReal(input, objects, -1);
                     } else {
                         int objPos = input.readed();
                         ImcClassDesc readDesc = readClassDesc(input);
-                        obj = FieldHandler.createInstance(readDesc.classData);
-                        objects.put(objPos, obj);
-                        readDesc.readRealObject(obj, objects, input);
+                        obj = readDesc.readReal(input, objects, objPos);
                     }
                 }
                 return obj;
             }
         }
         return null;
+    }
+
+    private Object readReal(DataInputLen input, Map<Integer, Object> objects, int objPos) throws InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, IOException {
+        if (classData.isArray()) {
+            return readArray(input, objects, classData.getComponentType());
+        } else {
+            Object obj = FieldHandler.createInstance(classData);
+            objects.put(objPos, obj);
+            readRealObject(obj, objects, input);
+            return obj;
+        }
     }
 
     private Object readCycleReference(DataInputLen input, Map<Integer, Object> objects) throws IOException {
