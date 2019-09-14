@@ -16,10 +16,6 @@ import java.util.stream.Stream;
 
 @Data
 class ImcClassDesc {
-    private final Class<?> classData;
-    private final ITypeContract<?>[] types;
-    private final int[] pos;
-    private final ImcClassDesc[] customType;
     private static final Map<Class<?>, SoftReference<ImcClassDesc>> cache;
     private static final ImcClassDesc EMPTY_CUSTOM_TYPE;
     private static final ITypeContract<?> EMPTY_TYPE;
@@ -28,6 +24,19 @@ class ImcClassDesc {
         cache = new HashMap<>();
         EMPTY_CUSTOM_TYPE = null;
         EMPTY_TYPE = null;
+    }
+
+    private final Class<?> classData;
+    private final ITypeContract<?>[] types;
+    private final int[] pos;
+    private final ImcClassDesc[] customType;
+
+    private ImcClassDesc(Class<?> imcClassData) {
+        classData = imcClassData;
+        int size = (int) readFields(imcClassData).count();
+        types = new ITypeContract<?>[size];
+        pos = new int[size];
+        customType = new ImcClassDesc[size];
     }
 
     static ImcClassDesc getImcClassDesc(Class<?> imcClassData) {
@@ -44,102 +53,8 @@ class ImcClassDesc {
         return classDesc;
     }
 
-    private ImcClassDesc writeClassDesc(DataOutputLen output, Object object) throws IOException {
-        Class<?> retClass = object.getClass();
-        if (getClassData() == retClass) {
-            output.writeBoolean(false);
-            return this;
-        } else {
-            output.writeBoolean(true);
-            String name = retClass.getName();
-            StreamUtil.writeString(name, output);
-            return ImcClassDesc.getImcClassDesc(retClass);
-        }
-    }
-
-    private ImcClassDesc readClassDesc(DataInputLen input) throws IOException {
-        boolean isDifferentClass = input.readBoolean();
-        if (!isDifferentClass) {
-            return this;
-        } else {
-            String name = StreamUtil.readString(input);
-            Class<?> retClass = null;
-            try {
-                retClass = Class.forName(name);
-            } catch (ClassNotFoundException e) {
-                //TODO: write to log
-                e.printStackTrace();
-            }
-            return ImcClassDesc.getImcClassDesc(retClass);
-        }
-    }
-
-    private ImcClassDesc(Class<?> imcClassData) {
-        classData = imcClassData;
-        int size = (int) readFields(imcClassData).count();
-        types = new ITypeContract<?>[size];
-        pos = new int[size];
-        customType = new ImcClassDesc[size];
-    }
-
-    private void init() {
-        List<ITypeContract<?>> cTypes = new ArrayList<>();
-        List<Integer> cPos = new ArrayList<>();
-        List<ImcClassDesc> cCustomType = new ArrayList<>();
-        readAllFields(classData, cTypes, cPos, cCustomType);
-        sortData(cTypes, cPos, cCustomType);
-    }
-
-    private <T> void swap(List<T> src, List<T> dst, int srcPos, int dstPos) {
-        T temp = src.get(srcPos);
-        src.set(srcPos, dst.get(dstPos));
-        dst.set(dstPos, temp);
-    }
-
-    private void sortData(List<ITypeContract<?>> cTypes, List<Integer> cPos, List<ImcClassDesc> cCustomType) {
-        int size = cTypes.size();
-        for (int i = 0; i < size; i++) {
-            int index = -1;
-            int min = Integer.MAX_VALUE;
-            for (int j = i; j < size; j++) {
-                if (cPos.get(j) < min) {
-                    index = j;
-                    min = cPos.get(j);
-                }
-            }
-            swap(cTypes, cTypes, i, index);
-            swap(cPos, cPos, i, index);
-            swap(cCustomType, cCustomType, i, index);
-            pos[i] = cPos.get(i);
-            types[i] = cTypes.get(i);
-            customType[i] = cCustomType.get(i);
-        }
-    }
-
-    private void readClass(FieldHandler field, List<ITypeContract<?>> cTypes, List<Integer> cPos, List<ImcClassDesc> cCustomType) {
-        Class<?> fieldClass = field.getFieldType();
-        if (fieldClass.isPrimitive()) {
-            cTypes.add(FieldHandler.getTypeContract(fieldClass));
-            cPos.add(field.getOffset());
-            cCustomType.add(EMPTY_CUSTOM_TYPE);
-        } else {
-            Class<?> superClass = fieldClass.getSuperclass();
-            if (superClass != null) {
-                getImcClassDesc(fieldClass.getSuperclass());
-            }
-            ImcClassDesc classData = getImcClassDesc(fieldClass);
-            cTypes.add(EMPTY_TYPE);
-            cPos.add(field.getOffset());
-            cCustomType.add(classData);
-        }
-    }
-
     private static Stream<Field> readFields(Class<?> fieldClass) {
         return Arrays.stream(fieldClass.getDeclaredFields()).filter(field -> !Modifier.isStatic(field.getModifiers()));
-    }
-
-    private void readAllFields(Class<?> fieldClass, List<ITypeContract<?>> cTypes, List<Integer> cPos, List<ImcClassDesc> cCustomType) {
-        readFields(fieldClass).forEach(field -> readClass(new FieldHandler(field), cTypes, cPos, cCustomType));
     }
 
     private static void writeArray(Object arr, Map<Object, Integer> objects, DataOutputLen output, Class<?> componentType) throws IOException {
@@ -199,8 +114,174 @@ class ImcClassDesc {
         }
     }
 
+    private ImcClassDesc writeClassDesc(DataOutputLen output, Object object) throws IOException {
+        Class<?> retClass = object.getClass();
+        if (getClassData() == retClass) {
+            output.writeBoolean(false);
+            return this;
+        } else {
+            output.writeBoolean(true);
+            String name = retClass.getName();
+            StreamUtil.writeString(name, output);
+            return ImcClassDesc.getImcClassDesc(retClass);
+        }
+    }
+
+    private ImcClassDesc readClassDesc(DataInputLen input) throws IOException {
+        boolean isDifferentClass = input.readBoolean();
+        if (!isDifferentClass) {
+            return this;
+        } else {
+            String name = StreamUtil.readString(input);
+            Class<?> retClass = null;
+            try {
+                retClass = Class.forName(name);
+            } catch (ClassNotFoundException e) {
+                //TODO: write to log
+                e.printStackTrace();
+            }
+            return ImcClassDesc.getImcClassDesc(retClass);
+        }
+    }
+
+    private void init() {
+        List<ITypeContract<?>> cTypes = new ArrayList<>();
+        List<Integer> cPos = new ArrayList<>();
+        List<ImcClassDesc> cCustomType = new ArrayList<>();
+        readAllFields(classData, cTypes, cPos, cCustomType);
+        sortData(cTypes, cPos, cCustomType);
+    }
+
+    private <T> void swap(List<T> src, List<T> dst, int srcPos, int dstPos) {
+        T temp = src.get(srcPos);
+        src.set(srcPos, dst.get(dstPos));
+        dst.set(dstPos, temp);
+    }
+
+    private void sortData(List<ITypeContract<?>> cTypes, List<Integer> cPos, List<ImcClassDesc> cCustomType) {
+        int size = cTypes.size();
+        for (int i = 0; i < size; i++) {
+            int index = -1;
+            int min = Integer.MAX_VALUE;
+            for (int j = i; j < size; j++) {
+                if (cPos.get(j) < min) {
+                    index = j;
+                    min = cPos.get(j);
+                }
+            }
+            swap(cTypes, cTypes, i, index);
+            swap(cPos, cPos, i, index);
+            swap(cCustomType, cCustomType, i, index);
+            pos[i] = cPos.get(i);
+            types[i] = cTypes.get(i);
+            customType[i] = cCustomType.get(i);
+        }
+    }
+
+    private void readClass(FieldHandler field, List<ITypeContract<?>> cTypes, List<Integer> cPos, List<ImcClassDesc> cCustomType) {
+        Class<?> fieldClass = field.getFieldType();
+        if (fieldClass.isPrimitive()) {
+            cTypes.add(FieldHandler.getTypeContract(fieldClass));
+            cPos.add(field.getOffset());
+            cCustomType.add(EMPTY_CUSTOM_TYPE);
+        } else {
+            Class<?> superClass = fieldClass.getSuperclass();
+            if (superClass != null) {
+                getImcClassDesc(fieldClass.getSuperclass());
+            }
+            ImcClassDesc classData = getImcClassDesc(fieldClass);
+            cTypes.add(EMPTY_TYPE);
+            cPos.add(field.getOffset());
+            cCustomType.add(classData);
+        }
+    }
+
+    private void readAllFields(Class<?> fieldClass, List<ITypeContract<?>> cTypes, List<Integer> cPos, List<ImcClassDesc> cCustomType) {
+        readFields(fieldClass).forEach(field -> readClass(new FieldHandler(field), cTypes, cPos, cCustomType));
+    }
+
     void writeImcClassDescBytes(Object obj, DataOutputLen output) throws IOException {
-        Map<Object, Integer> objects = new HashMap<>();
+        Map<Object, Integer> objects = new Map<>() {
+            private Map<ObjectWrapper, Integer> internalMap = new HashMap<>();
+
+            @Override
+            public int size() {
+                return internalMap.size();
+            }
+
+            @Override
+            public boolean isEmpty() {
+                return internalMap.isEmpty();
+            }
+
+            @Override
+            public boolean containsKey(Object o) {
+                return internalMap.containsKey(new ObjectWrapper(o));
+            }
+
+            @Override
+            public boolean containsValue(Object o) {
+                return internalMap.containsValue(o);
+            }
+
+            @Override
+            public Integer get(Object o) {
+                return internalMap.get(new ObjectWrapper(o));
+            }
+
+            @Override
+            public Integer put(Object o, Integer integer) {
+                return internalMap.put(new ObjectWrapper(o), integer);
+            }
+
+            @Override
+            public Integer remove(Object o) {
+                return internalMap.remove(new ObjectWrapper(o));
+            }
+
+            @Override
+            public void putAll(Map<?, ? extends Integer> map) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public void clear() {
+                internalMap.clear();
+            }
+
+            @Override
+            public Set<Object> keySet() {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public Collection<Integer> values() {
+                return internalMap.values();
+            }
+
+            @Override
+            public Set<Entry<Object, Integer>> entrySet() {
+                throw new UnsupportedOperationException();
+            }
+
+            class ObjectWrapper {
+                private Object obj;
+
+                ObjectWrapper(Object obj) {
+                    this.obj = obj;
+                }
+
+                @Override
+                public boolean equals(Object obj) {
+                    return obj instanceof ObjectWrapper && this.obj == ((ObjectWrapper) obj).obj;
+                }
+
+                @Override
+                public int hashCode() {
+                    return System.identityHashCode(obj);
+                }
+            }
+        };
         if (getClassData().isPrimitive()) {
             FieldHandler.getTypeContract(getClassData()).writeO(output, obj);
         } else {

@@ -1,6 +1,7 @@
 package imcCore.Utils.GeneralClasses;
 
 import imcCore.Utils.GeneralContractInterface.IContractOverloading;
+import org.apache.commons.math3.util.Pair;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,6 +27,17 @@ public class IContractOverloadingImpl implements IContractOverloading {
     public int f9cB = 0;
     public int fa1 = 0;
     public String f3VS_S = null;
+
+    public static C fa2s4(E e, T t) {
+        C c = new C();
+        c.i = e.g;
+        c.s = new C();
+        c.s.i = t.g;
+        c.s.s = c;
+        c.a = e.c;
+        c.b = t.c;
+        return c;
+    }
 
     @Override
     public void f1() {
@@ -149,40 +161,34 @@ public class IContractOverloadingImpl implements IContractOverloading {
 
     @Override
     public C fa21(C c) {
-        C rc=new C();
-        rc.s=c;
+        C rc = new C();
+        rc.s = c;
         return rc;
     }
 
     @Override
     public E fa22(E e) {
-        E re=new E();
-        re.t=new T();
-        re.t.e=e;
+        E re = new E();
+        re.t = new T();
+        re.t.e = e;
         return re;
     }
 
     @Override
     public T fa23(T t) {
-        T rt=new T();
-        rt.t=t;
+        T rt = new T();
+        rt.t = t;
         return rt;
-    }
-
-    public static C fa2s4(E e, T t) {
-        C c = new C();
-        c.i = e.g;
-        c.s = new C();
-        c.s.i = t.g;
-        c.s.s = c;
-        c.a = e.c;
-        c.b = t.c;
-        return c;
     }
 
     @Override
     public C fa24(E e, T t) {
         return fa2s4(e, t);
+    }
+
+    @Override
+    public Pair<Q, Q> fa3(Q a, Q b) {
+        return new Pair<>(a, b);
     }
 
     @Override

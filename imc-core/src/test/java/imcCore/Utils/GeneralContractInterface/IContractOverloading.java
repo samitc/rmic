@@ -2,9 +2,11 @@ package imcCore.Utils.GeneralContractInterface;
 
 import imcCore.Utils.GeneralClasses.C;
 import imcCore.Utils.GeneralClasses.E;
+import imcCore.Utils.GeneralClasses.Q;
 import imcCore.Utils.GeneralClasses.T;
 import imcCore.contract.annotations.ContractInterface;
 import imcCore.contract.annotations.ContractMethod;
+import org.apache.commons.math3.util.Pair;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -65,12 +67,18 @@ public interface IContractOverloading {
 
     @ContractMethod
     C fa21(C c);
+
     @ContractMethod
     E fa22(E e);
+
     @ContractMethod
-    T fa23( T t);
+    T fa23(T t);
+
     @ContractMethod
     C fa24(E e, T t);
+
+    @ContractMethod
+    Pair<Q, Q> fa3(Q a, Q b);
 
     int f4();
 
