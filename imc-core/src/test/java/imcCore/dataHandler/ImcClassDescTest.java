@@ -14,11 +14,13 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.*;
 
 public class ImcClassDescTest {
     private static Unsafe unsafe;
+
     @BeforeClass
-    public static void setUp(){
+    public static void setUp() {
         Unsafe newUnsafe = null;
         Constructor<Unsafe> unsafeConstructor = null;
         try {
@@ -35,6 +37,7 @@ public class ImcClassDescTest {
         }
         unsafe = newUnsafe;
     }
+
     private static <T> void arrayToList(T[] arr, List<T> list) {
         list.addAll(Arrays.asList(arr));
     }
@@ -52,7 +55,7 @@ public class ImcClassDescTest {
         ITypeContract[] types = new ITypeContract[size];
         for (int i = 0; i < size; i++) {
             types[i] = FieldHandler.getTypeContract(fields[i].getType());
-            pos[i]= (int) unsafe.objectFieldOffset(fields[i]);
+            pos[i] = (int) unsafe.objectFieldOffset(fields[i]);
             if (types[i] == null) {
                 data[i] = ImcClassDesc.getImcClassDesc(fields[i].getType());
             } else {
@@ -114,20 +117,41 @@ public class ImcClassDescTest {
         G<String> g = new G<>();
         testClass(g.getClass());
     }
+
     @Test
-    public void staticTest(){
+    public void staticTest() {
         testClass(S.class);
     }
+
     @Test
-    public void selfContainTest(){
+    public void selfContainTest() {
         testClass(C.class);
     }
+
     @Test
-    public void selfContainCycleTest(){
+    public void selfContainCycleTest() {
         testClass(T.class);
     }
+
     @Test
-    public void containCycleSelfTest(){
+    public void containCycleSelfTest() {
         testClass(E.class);
+    }
+
+    @Test
+    public void concurrencyClassDescCreate() throws InterruptedException, ExecutionException, TimeoutException {
+        int RUNNER_COUNT = 4;
+        CyclicBarrier start = new CyclicBarrier(RUNNER_COUNT);
+        ExecutorService executor = Executors.newFixedThreadPool(RUNNER_COUNT);
+        Future[] results = new Future[RUNNER_COUNT];
+        for (int i = 0; i < RUNNER_COUNT; i++) {
+            results[i] = executor.submit(() -> {
+                start.await();
+                return ImcClassDesc.getImcClassDesc(S.class);
+            });
+        }
+        for (int i = 0; i < RUNNER_COUNT - 1; i++) {
+            Assert.assertSame(results[i].get(1, TimeUnit.SECONDS), results[i + 1].get(1, TimeUnit.SECONDS));
+        }
     }
 }

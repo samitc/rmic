@@ -39,7 +39,7 @@ class ImcClassDesc {
         customType = new ImcClassDesc[size];
     }
 
-    static ImcClassDesc getImcClassDesc(Class<?> imcClassData) {
+    static synchronized ImcClassDesc getImcClassDesc(Class<?> imcClassData) {
         SoftReference<ImcClassDesc> ref = cache.get(imcClassData);
         ImcClassDesc classDesc = null;
         if (ref != null) {
