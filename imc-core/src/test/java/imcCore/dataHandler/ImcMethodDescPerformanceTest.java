@@ -45,11 +45,14 @@ public class ImcMethodDescPerformanceTest {
 
     @Test
     public void benchmarkTest() throws RunnerException {
-        Options opt = new OptionsBuilder()
-                .include(ImcMethodDescPerformanceTest.class.getSimpleName()+System.getProperty("benchTest"))
-                .forks(1)
-                .build();
-        new Runner(opt).run();
+        String benchTestFilter = System.getProperty("benchTest");
+        if (benchTestFilter != null) {
+            Options opt = new OptionsBuilder()
+                    .include(ImcMethodDescPerformanceTest.class.getSimpleName()+benchTestFilter)
+                    .forks(1)
+                    .build();
+            new Runner(opt).run();
+        }
     }
 
     @Test
