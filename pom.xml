@@ -13,7 +13,7 @@
         <maven.plugin.test.version>2.22.0</maven.plugin.test.version>
         <maven.plugin.jar.version>3.0.2</maven.plugin.jar.version>
         <maven.source.lombok.version>1.18.8</maven.source.lombok.version>
-        <maven.testing.junit.version>4.12</maven.testing.junit.version>
+        <maven.testing.junit.version>4.13.1</maven.testing.junit.version>
         <maven.testing.jmh.version>1.21</maven.testing.jmh.version>
         <maven.imc.version>1.0.0-SNAPSHOT</maven.imc.version>
         <maven.jotils.version>0.1.3-SNAPSHOT</maven.jotils.version>
