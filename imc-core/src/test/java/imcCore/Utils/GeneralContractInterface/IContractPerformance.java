@@ -1,5 +1,6 @@
 package imcCore.Utils.GeneralContractInterface;
 
+import imcCore.Utils.GeneralClasses.E;
 import imcCore.contract.annotations.ContractInterface;
 import imcCore.contract.annotations.ContractMethod;
 
@@ -25,4 +26,7 @@ public interface IContractPerformance {
 
     @ContractMethod(sendResult = false)
     Integer f6(int val,int val2);
+
+    @ContractMethod()
+    E f7(E val);
 }

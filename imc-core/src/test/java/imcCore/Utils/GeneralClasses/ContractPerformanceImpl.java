@@ -36,4 +36,9 @@ public class ContractPerformanceImpl implements IContractPerformance {
     public Integer f6(int val, int val2) {
         return val + val2;
     }
+
+    @Override
+    public E f7(E val) {
+        return val;
+    }
 }

@@ -170,12 +170,13 @@ public class ImcMethodDesc {
         }
     }
 
-    static class DataInputLenStream extends ByteArrayInputStream implements DataInputLen {
-        private final DataInputStream s;
+    static class DataInputLenStream implements DataInputLen {
+        private final byte[] buf;
+        private int pos = 0;
+        private final byte[] readBuffer = new byte[8];
 
         DataInputLenStream(byte[] buf) {
-            super(buf);
-            s = new DataInputStream(this);
+            this.buf = buf;
         }
 
         @Override
@@ -185,77 +186,104 @@ public class ImcMethodDesc {
 
         @Override
         public void readFully(byte[] b) throws IOException {
-            s.readFully(b);
+            this.readFully(b, 0, b.length);
         }
 
         @Override
         public void readFully(byte[] b, int off, int len) throws IOException {
-            s.readFully(b, off, len);
+            int readLen = Math.min(len, buf.length - pos);
+            System.arraycopy(buf, pos, b, off, readLen);
+            pos += readLen;
+            if (readLen < len) {
+                throw new EOFException();
+            }
         }
 
         @Override
         public int skipBytes(int n) throws IOException {
-            return s.skipBytes(n);
+            int skipLen = Math.min(n, buf.length - pos);
+            pos += skipLen;
+            return skipLen;
         }
 
         @Override
         public boolean readBoolean() throws IOException {
-            return s.readBoolean();
+            return readByte() != 0;
+        }
+
+        private int read() throws IOException {
+            if (pos >= buf.length) {
+                throw new EOFException();
+            }
+            return buf[pos++] & 0xff;
         }
 
         @Override
         public byte readByte() throws IOException {
-            return s.readByte();
+            if (pos >= buf.length) {
+                throw new EOFException();
+            }
+            return buf[pos++];
         }
 
         @Override
         public int readUnsignedByte() throws IOException {
-            return s.readUnsignedByte();
+            int val = readByte();
+            return val & 0xff;
         }
 
         @Override
         public short readShort() throws IOException {
-            return s.readShort();
+            return (short) readUnsignedShort();
         }
 
         @Override
         public int readUnsignedShort() throws IOException {
-            return s.readUnsignedShort();
+            return (((read()) << 8) + (read()));
         }
 
         @Override
         public char readChar() throws IOException {
-            return s.readChar();
+            return (char) ((read() << 8) + (read()));
         }
 
         @Override
         public int readInt() throws IOException {
-            return s.readInt();
+            return ((read() << 24) + (read() << 16) + (read() << 8) + (read()));
         }
 
         @Override
         public long readLong() throws IOException {
-            return s.readLong();
+            readFully(readBuffer, 0, 8);
+            return (((long)readBuffer[0] << 56) +
+                    ((long)(readBuffer[1] & 255) << 48) +
+                    ((long)(readBuffer[2] & 255) << 40) +
+                    ((long)(readBuffer[3] & 255) << 32) +
+                    ((long)(readBuffer[4] & 255) << 24) +
+                    ((readBuffer[5] & 255) << 16) +
+                    ((readBuffer[6] & 255) <<  8) +
+                    ((readBuffer[7] & 255) <<  0));
         }
 
         @Override
         public float readFloat() throws IOException {
-            return s.readFloat();
+            return Float.intBitsToFloat(readInt());
         }
 
         @Override
         public double readDouble() throws IOException {
-            return s.readDouble();
+            return Double.longBitsToDouble(readLong());
         }
 
         @Override
         public String readLine() throws IOException {
-            return s.readLine();
+            throw new UnsupportedOperationException();
         }
 
         @Override
         public String readUTF() throws IOException {
-            return s.readUTF();
+            throw new UnsupportedOperationException();
         }
     }
+
 }

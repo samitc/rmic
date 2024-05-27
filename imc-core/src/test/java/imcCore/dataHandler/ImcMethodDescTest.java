@@ -134,7 +134,7 @@ public class ImcMethodDescTest {
         return root;
     }
 
-    private static E createE() {
+    static E createE() {
         E e = new E();
         e.g = 6;
         e.c = createC();

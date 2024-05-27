@@ -17,11 +17,13 @@ import java.util.stream.Stream;
 @Data
 class ImcClassDesc {
     private static final Map<Class<?>, SoftReference<ImcClassDesc>> cache;
+    private static final Map<String, Class<?>> nameToClassCache;
     private static final ImcClassDesc EMPTY_CUSTOM_TYPE;
     private static final ITypeContract<?> EMPTY_TYPE;
 
     static {
         cache = new HashMap<>();
+        nameToClassCache = new WeakHashMap<>();
         EMPTY_CUSTOM_TYPE = null;
         EMPTY_TYPE = null;
     }
@@ -109,8 +111,50 @@ class ImcClassDesc {
 
     private static void handlePrimitiveArray(DataInputLen input, Object obj, int l, Class<?> componentType) throws IOException {
         val typeContract = FieldHandler.getTypeContract(componentType);
-        for (int j = 0; j < l; j++) {
-            Array.set(obj, j, typeContract.read(input));
+        if (obj instanceof byte[]) {
+            byte[] arr = (byte[]) obj;
+            for (int j = 0; j < arr.length; j++) {
+                arr[j] = (byte) typeContract.read(input);
+            }
+        } else if (obj instanceof char[]) {
+            char[] arr = (char[]) obj;
+            for (int j = 0; j < arr.length; j++) {
+                arr[j] = (char) typeContract.read(input);
+            }
+        } else if (obj instanceof short[]) {
+            short[] arr = (short[]) obj;
+            for (int j = 0; j < arr.length; j++) {
+                arr[j] = (short) typeContract.read(input);
+            }
+        } else if (obj instanceof int[]) {
+            int[] arr = (int[]) obj;
+            for (int j = 0; j < arr.length; j++) {
+                arr[j] = (int) typeContract.read(input);
+            }
+        } else if (obj instanceof long[]) {
+            long[] arr = (long[]) obj;
+            for (int j = 0; j < arr.length; j++) {
+                arr[j] = (long) typeContract.read(input);
+            }
+        } else if (obj instanceof float[]) {
+            float[] arr = (float[]) obj;
+            for (int j = 0; j < arr.length; j++) {
+                arr[j] = (float) typeContract.read(input);
+            }
+        } else if (obj instanceof double[]) {
+            double[] arr = (double[]) obj;
+            for (int j = 0; j < arr.length; j++) {
+                arr[j] = (double) typeContract.read(input);
+            }
+        } else if (obj instanceof boolean[]) {
+            boolean[] arr = (boolean[]) obj;
+            for (int j = 0; j < arr.length; j++) {
+                arr[j] = (boolean) typeContract.read(input);
+            }
+        } else { // Should not happen
+            for (int j = 0; j < l; j++) {
+                Array.set(obj, j, typeContract.read(input));
+            }
         }
     }
 
@@ -133,13 +177,15 @@ class ImcClassDesc {
             return this;
         } else {
             String name = StreamUtil.readString(input);
-            Class<?> retClass = null;
-            try {
-                retClass = Class.forName(name);
-            } catch (ClassNotFoundException e) {
-                //TODO: write to log
-                e.printStackTrace();
-            }
+            Class<?> retClass = nameToClassCache.computeIfAbsent(name, k -> {
+                try {
+                    return Class.forName(name);
+                } catch (ClassNotFoundException e) {
+                    //TODO: write to log
+                    e.printStackTrace();
+                }
+                return null;
+            });
             return ImcClassDesc.getImcClassDesc(retClass);
         }
     }
@@ -201,90 +247,94 @@ class ImcClassDesc {
     }
 
     void writeImcClassDescBytes(Object obj, DataOutputLen output) throws IOException {
-        Map<Object, Integer> objects = new Map<>() {
-            private Map<ObjectWrapper, Integer> internalMap = new HashMap<>();
-
-            @Override
-            public int size() {
-                return internalMap.size();
-            }
-
-            @Override
-            public boolean isEmpty() {
-                return internalMap.isEmpty();
-            }
-
-            @Override
-            public boolean containsKey(Object o) {
-                return internalMap.containsKey(new ObjectWrapper(o));
-            }
-
-            @Override
-            public boolean containsValue(Object o) {
-                return internalMap.containsValue(o);
-            }
-
-            @Override
-            public Integer get(Object o) {
-                return internalMap.get(new ObjectWrapper(o));
-            }
-
-            @Override
-            public Integer put(Object o, Integer integer) {
-                return internalMap.put(new ObjectWrapper(o), integer);
-            }
-
-            @Override
-            public Integer remove(Object o) {
-                return internalMap.remove(new ObjectWrapper(o));
-            }
-
-            @Override
-            public void putAll(Map<?, ? extends Integer> map) {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public void clear() {
-                internalMap.clear();
-            }
-
-            @Override
-            public Set<Object> keySet() {
-                throw new UnsupportedOperationException();
-            }
-
-            @Override
-            public Collection<Integer> values() {
-                return internalMap.values();
-            }
-
-            @Override
-            public Set<Entry<Object, Integer>> entrySet() {
-                throw new UnsupportedOperationException();
-            }
-
-            class ObjectWrapper {
-                private Object obj;
-
-                ObjectWrapper(Object obj) {
-                    this.obj = obj;
-                }
-
-                @Override
-                public boolean equals(Object obj) {
-                    return obj instanceof ObjectWrapper && this.obj == ((ObjectWrapper) obj).obj;
-                }
-
-                @Override
-                public int hashCode() {
-                    return System.identityHashCode(obj);
-                }
-            }
-        };
         if (getClassData().isPrimitive()) {
             FieldHandler.getTypeContract(getClassData()).writeO(output, obj);
         } else {
+            Map<Object, Integer> objects = new Map<>() {
+                private Map<ObjectWrapper, Integer> internalMap;
+
+                {
+                    internalMap = new HashMap<>();
+                }
+
+                @Override
+                public int size() {
+                    return internalMap.size();
+                }
+
+                @Override
+                public boolean isEmpty() {
+                    return internalMap.isEmpty();
+                }
+
+                @Override
+                public boolean containsKey(Object o) {
+                    return internalMap.containsKey(new ObjectWrapper(o));
+                }
+
+                @Override
+                public boolean containsValue(Object o) {
+                    return internalMap.containsValue(o);
+                }
+
+                @Override
+                public Integer get(Object o) {
+                    return internalMap.get(new ObjectWrapper(o));
+                }
+
+                @Override
+                public Integer put(Object o, Integer integer) {
+                    return internalMap.put(new ObjectWrapper(o), integer);
+                }
+
+                @Override
+                public Integer remove(Object o) {
+                    return internalMap.remove(new ObjectWrapper(o));
+                }
+
+                @Override
+                public void putAll(Map<?, ? extends Integer> map) {
+                    throw new UnsupportedOperationException();
+                }
+
+                @Override
+                public void clear() {
+                    internalMap.clear();
+                }
+
+                @Override
+                public Set<Object> keySet() {
+                    throw new UnsupportedOperationException();
+                }
+
+                @Override
+                public Collection<Integer> values() {
+                    return internalMap.values();
+                }
+
+                @Override
+                public Set<Map.Entry<Object, Integer>> entrySet() {
+                    throw new UnsupportedOperationException();
+                }
+
+                class ObjectWrapper {
+                    private Object obj;
+
+                    ObjectWrapper(Object obj) {
+                        this.obj = obj;
+                    }
+
+                    @Override
+                    public boolean equals(Object obj) {
+                        return obj instanceof ObjectWrapper && this.obj == ((ObjectWrapper) obj).obj;
+                    }
+
+                    @Override
+                    public int hashCode() {
+                        return System.identityHashCode(obj);
+                    }
+                }
+            };
             writeBytes(obj, objects, output);
         }
     }
@@ -341,11 +391,13 @@ class ImcClassDesc {
 
     Object readImcClassDescBytes(DataInputLen input) throws InvocationTargetException, IOException, InstantiationException, NoSuchMethodException, IllegalAccessException {
         Map<Integer, Object> objects = new HashMap<>();
+        Object obj;
         if (getClassData().isPrimitive()) {
-            return FieldHandler.getTypeContract(getClassData()).read(input);
+            obj = FieldHandler.getTypeContract(getClassData()).read(input);
         } else {
-            return readBytes(input, objects);
+            obj = readBytes(input, objects);
         }
+        return obj;
     }
 
     private Object readBytes(DataInputLen input, Map<Integer, Object> objects) throws IllegalAccessException, InstantiationException, IOException, NoSuchMethodException, InvocationTargetException {

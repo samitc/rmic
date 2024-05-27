@@ -97,6 +97,18 @@ jobs:
     - stage: performance test
       env:
       before_script:
+        - MODULE_TO_RUN=imc-core
+        - TEST_TO_RUN=ImcMethodDescPerformanceTest#benchmarkTest
+        - ADDITIONAL_ARGUMENT=-DbenchTest=".eEWrite"
+    - stage: performance test
+      env:
+      before_script:
+        - MODULE_TO_RUN=imc-core
+        - TEST_TO_RUN=ImcMethodDescPerformanceTest#benchmarkTest
+        - ADDITIONAL_ARGUMENT=-DbenchTest=".eERead"
+    - stage: performance test
+      env:
+      before_script:
         - MODULE_TO_RUN=imc-testing
         - TEST_TO_RUN=ImcPerformanceTesting#clientServerBenchmarkTest
         - ADDITIONAL_ARGUMENT=-DclientServerBenchTest=".emptyMethod"

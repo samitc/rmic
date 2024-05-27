@@ -1,5 +1,7 @@
 package imcCore.dataHandler;
 
+import imcCore.Utils.GeneralClasses.E;
+import imcCore.Utils.GeneralClasses.T;
 import imcCore.Utils.GeneralContractInterface.IContractPerformance;
 import imcCore.contract.Exceptions.NotContractInterfaceType;
 import imcCore.contract.Exceptions.NotContractMethodException;
@@ -12,6 +14,7 @@ import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
+import org.openjdk.jmh.runner.options.TimeValue;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -42,6 +45,9 @@ public class ImcMethodDescPerformanceTest {
     private ImcMethod intIIMet;
     private MethodPocket intIIPocket;
     private byte[] intIIData;
+    private ImcMethod eEMet;
+    private MethodPocket eEPocket;
+    private byte[] eEData;
 
     @Test
     public void benchmarkTest() throws RunnerException {
@@ -78,10 +84,10 @@ public class ImcMethodDescPerformanceTest {
         emptyPocket = new MethodPocket(null, null);
         voidVoidData = voidVoidMet.write(emptyPocket);
         intListIMet = imcClass.getImcMethod(1);
-        intListIPocket = MethodPocket.builder().addParam(new ArrayList<>(Arrays.stream(floats).map(Float::intValue).collect(Collectors.toList()))).retObj(Arrays.stream(floats).map(Float::intValue).reduce((integer, integer2) -> integer + integer2).get()).build();
+        intListIPocket = MethodPocket.builder().addParam(new ArrayList<>(Arrays.stream(floats).map(Float::intValue).collect(Collectors.toList()))).retObj(Arrays.stream(floats).map(Float::intValue).reduce(Integer::sum).get()).build();
         intListIData = intListIMet.write(intListIPocket);
         floatListFMet = imcClass.getImcMethod(2);
-        floatListFPocket = MethodPocket.builder().addParam(new ArrayList<>(Arrays.stream(floats).collect(Collectors.toList()))).retObj(Arrays.stream(floats).reduce((aFloat, aFloat2) -> aFloat + aFloat2).get()).build();
+        floatListFPocket = MethodPocket.builder().addParam(new ArrayList<>(Arrays.stream(floats).collect(Collectors.toList()))).retObj(Arrays.stream(floats).reduce(Float::sum).get()).build();
         floatListFData = floatListFMet.write(floatListFPocket);
         lIintAMet = imcClass.getImcMethod(3);
         lIintAPocket = MethodPocket.builder().addParam(Arrays.stream(floats).map(Float::intValue).toArray(Integer[]::new)).retObj(Arrays.stream(floats).map(Float::intValue).collect(Collectors.toList())).build();
@@ -92,6 +98,13 @@ public class ImcMethodDescPerformanceTest {
         intIIMet = imcClass.getImcMethod(5);
         intIIPocket = MethodPocket.builder().addParam(73).addParam(34).retObj(73 * 34).build();
         intIIData = intIIMet.write(intIIPocket);
+        E e = ImcMethodDescTest.createE();
+        E r = new E();
+        r.t = new T();
+        r.t.e = e;
+        eEMet = imcClass.getImcMethod(6);
+        eEPocket = MethodPocket.builder().addParam(e).retObj(r).build();
+        eEData = eEMet.write(eEPocket);
     }
 
     @Benchmark
@@ -152,5 +165,15 @@ public class ImcMethodDescPerformanceTest {
     @Benchmark
     public MethodPocket intIIRead() throws InvocationTargetException, IOException, InstantiationException, NoSuchMethodException, IllegalAccessException {
         return intIIMet.read(intIIData);
+    }
+
+    @Benchmark
+    public byte[] eEWrite() throws IOException {
+        return eEMet.write(eEPocket);
+    }
+
+    @Benchmark
+    public MethodPocket eERead() throws InvocationTargetException, IOException, InstantiationException, NoSuchMethodException, IllegalAccessException {
+        return eEMet.read(eEData);
     }
 }
